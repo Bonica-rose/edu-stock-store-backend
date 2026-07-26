@@ -1,78 +1,66 @@
 const asyncHandler  = require("../middleware/asyncHandler.middleware");
-const authService  = require("../services/auth.service")
+const authService = require("../services/auth.service");
+const { successResponse } = require("../utils/apiResponse.util");
 
-exports.login = asyncHandler (async (req, res) => {
-    const result = await authService.login(req.body);
+exports.login = asyncHandler(async (req, res) => {
 
-    res.cookie("token", result.token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production", // true in production with HTTPS
-        sameSite:
-            process.env.NODE_ENV === "production"
-                ? "none"
-                : "lax",
-        maxAge: 24 * 60 * 60 * 1000 // 1 day = 86,400,000 ms
-    });
+    const { token, user } = await authService.login(req.body);
 
-    res.status(200).json({
-        success: true,
-        message: "Login successful",
-        data: result.user
-    });
+    res.cookie(
+        "accessToken",
+        token,
+        authService.getCookieOptions()
+    );
+
+    successResponse(res, 200, "Login successful", user);
 });
 
-exports.logout = asyncHandler(async (req, res) => {
+exports.logout = asyncHandler(async (req, res) => {   
 
-    res.clearCookie("token", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite:
-            process.env.NODE_ENV === "production"
-                ? "none"
-                : "lax",
-    });
+    await authService.logout();
 
-    res.status(200).json({
-        success: true,
-        message: "Logout successful",
-    });
+    res.clearCookie("accessToken", authService.getCookieOptions());
 
+    successResponse(res, 200, "Logout successful");
 });
 
-exports.me = asyncHandler (async (req, res) => {
-    const user = await authService.getCurrentUser(req.user.id);
-    res.status(200).json({
-        success: true,
-        data: user
-    });
+exports.me = asyncHandler(async (req, res) => {
+    
+    const user = await authService.getCurrentUser(req.user._id);
+
+    successResponse(res, 200, "Login successful", user);
 });
 
-exports.changePassword = asyncHandler (async (req, res) => {    
+exports.changePassword = asyncHandler(async (req, res) => {   
+    
     await authService.changePassword(
-        req.user.id,
+        req.user._id,
         req.body.currentPassword,
         req.body.newPassword
     );
 
-    res.status(200).json({
-        success: true,
-        message: "Password changed successfully"
-    });
+    successResponse(res, 200, "Password changed successfully");
 });
 
-exports.updateProfile = asyncHandler(async (req, res) => { 
 
-    const updateData = {
-        firstName: req.body.firstName,
-        lastName: req.body.lastName,
-        phone: req.body.phone,
-        avatar: req.body.profileImage,
-    };
 
-    const user = await authService.updateProfile(req.user.id, updateData);
 
-    res.status(200).json({
-        success: true,
-        data: user
-    });
-});
+
+
+// exports.updateProfile = asyncHandler(async (req, res) => { 
+
+//     const updateData = {
+//         firstName: req.body.firstName,
+//         lastName: req.body.lastName,
+//         phone: req.body.phone,
+//         profileImage: req.body.profileImage,
+//         updatedBy: req.user._id,
+//     };
+
+//     const user = await authService.updateProfile(req.user._id, updateData);
+
+//     res.status(200).json({
+//         success: true,
+//         data: user
+//     });
+// });

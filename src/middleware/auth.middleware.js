@@ -1,12 +1,12 @@
 const User = require("../models/user.model");
 const asyncHandler = require("./asyncHandler.middleware");
 const ApiError = require("../utils/apiError.util");
-const { verifyAccessToken } = require("../utils/jwt.util");
+const { verifyAccessToken } = require("../services/auth.service");
 
 const authenticate = asyncHandler(async (req, res, next) => {
     
     // Get token from HttpOnly cookie
-    const token = req.cookies?.token;
+    const token = req.cookies?.accessToken;
     if (!token) {
         throw new ApiError(401, "Access denied. Please login.");
     }

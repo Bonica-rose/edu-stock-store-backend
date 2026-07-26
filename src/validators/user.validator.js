@@ -1,90 +1,101 @@
-const { body } = require('express-validator');
-const User = require("../models/user.model");
+const { body, param } = require('express-validator');
 const { ROLES } = require('../constants/roles'); 
 
 const ALLOWED_ROLES = Object.values(ROLES);
 
-exports.validateUserRegistration = [
-    body('firstName')
+exports.createUserValidator = [
+    body("firstName")
+        .trim()
+        .notEmpty().withMessage("First name is required")
+        .isLength({ min: 3, max: 25 }).withMessage("First name must be between 3 and 25 characters")
+        .bail()
+        .isAlpha('en-US').withMessage('First name must contain only letters'),
+
+    body("lastName")
+        .trim()
+        .notEmpty().withMessage("Last name is required")
+        .bail()
+        .isLength({ min: 3, max: 50 }).withMessage("Last name must be between 3 and 50 characters"),
+
+    body("email")
+        .trim()
+        .notEmpty().withMessage("Email is required")
+        .isEmail().withMessage("Invalid email address")
+        .normalizeEmail(),
+
+    body("password")
         .trim()
         .notEmpty()
-        .withMessage('First name is required')
-        .isLength({ min: 3 })
-        .withMessage('First name must be at least 3 characters'),
+        .withMessage("New password is required")
+        .bail()
+        .isLength({ min: 8, max: 32 })
+        .withMessage("New password must be between 8 and 32 characters")
+        .bail()
+        .matches(/(?=.*[A-Z])/)
+        .withMessage("New password must contain at least one uppercase letter")
+        .matches(/(?=.*[a-z])/)
+        .withMessage("New password must contain at least one lowercase letter")
+        .matches(/(?=.*\d)/)
+        .withMessage("New password must contain at least one number")
+        .matches(/(?=.*[@$!%*?&#])/)
+        .withMessage('New Password must contain at least one special character (@, $, !, %, *, ?, &, #)'),     
 
-    body('lastName')
-        .trim()
-        .notEmpty()
-        .withMessage('Last name is required'),
-
-    body('email')
-        .trim()
-        .notEmpty()
-        .withMessage('Email is required')
-        .isEmail()
-        .withMessage('Please provide a valid email address')
-        .normalizeEmail()
-        .custom(async (email) => {
-            const user = await User.findOne({ email });
-            if (user) {
-                throw new Error("Email already exists");
-            }
-            return true;
-        }),
-
-    body('password')
-        .notEmpty()
-        .withMessage('Password is required')
-        .isLength({ min: 8 })
-        .withMessage('Password must be at least 8 characters long')
-        .matches(/[A-Z]/)
-        .withMessage('Password must contain at least one uppercase letter')
-        .matches(/[a-z]/)
-        .withMessage('Password must contain at least one lowercase letter')
-        .matches(/[0-9]/)
-        .withMessage('Password must contain at least one number')
-        .matches(/[@$!%*?&#]/)
-        .withMessage('Password must contain at least one special character (@, $, !, %, *, ?, &, #)'),
-
-
-    body('phone')
+    body("phone")
         .optional({ checkFalsy: true })
         .trim()
-        .isMobilePhone()
-        .matches(/^[6-9]\d{9}$/)
-        .withMessage('Please provide a valid phone number'),
+        .matches(/^[6-9]\d{9}$/).withMessage("Please provide a valid phone number"),
 
-    body('role')
+    body("role")
+        .notEmpty().withMessage("Role is required")
+        .isIn(ALLOWED_ROLES).withMessage(`Invalid role. Allowed: ${ALLOWED_ROLES.join(', ')}`),
+
+    body("branch")
         .trim()
-        .notEmpty()
-        .withMessage('Role is required')
-        .isIn(ALLOWED_ROLES) // Pass the dynamic array here
-        .withMessage(`Invalid role. Allowed: ${ALLOWED_ROLES.join(', ')}`),
+        .notEmpty().withMessage("Branch is required")
+        .isMongoId().withMessage("Invalid branch ID")
+];
 
-    body('branch')
+exports.updateUserValidator = [
+    body("firstName")
+        .optional()
         .trim()
-        .notEmpty()
-        .withMessage('Branch ID is required')
-        .isMongoId()
-        .withMessage('Invalid Branch ID format'),
+        .notEmpty().withMessage("First name is required")
+        .isLength({ min: 3, max: 25 }).withMessage("First name must be between 3 and 25 characters")
+        .bail()
+        .isAlpha('en-US').withMessage('First name must contain only letters'),
 
-    body('avatar')
-        .optional({ checkFalsy: true })
+    body("lastName")
+        .optional()
         .trim()
-        .isURL()
-        .withMessage('Avatar must be a valid URL'),
+        .notEmpty().withMessage("Last name is required")
+        .bail()
+        .isLength({ min: 3, max: 50 }).withMessage("Last name must be between 3 and 50 characters"),
+    
+    body("phone")
+        .optional()
+        .trim()
+        .matches(/^[6-9]\d{9}$/).withMessage("Please provide a valid phone number"),
 
-    body('isActive')
-        .notEmpty()
-        .withMessage('isActive field is required')
+    body("role")
+        .optional()
+        .trim()
+        .notEmpty().withMessage("Role is required")
+        .isIn(ALLOWED_ROLES).withMessage(`Invalid role`),
+
+    body("branch")
+        .optional()
+        .trim()
+        .isMongoId().withMessage("Invalid branch ID"),
+
+    body("profileImage")
+        .optional()
+        .trim()
+        .isURL().withMessage("Invalid profile image URL"),
+
+    body("isActive")
+        .optional()
+        .trim()
         .isBoolean()
-        .withMessage('isActive must be a boolean value'),
-
-    body('createdBy')
-        .optional({ checkFalsy: true })
-        .trim()
-        .isMongoId()
-        .withMessage('Invalid Creator User ID format')
 ];
 
 exports.updateProfileValidator = [
@@ -114,13 +125,12 @@ exports.updateProfileValidator = [
         .optional()
         .trim()
         .matches(/^[6-9]\d{9}$/)
-        .withMessage("Invalid phone number"),
+        .withMessage("Please provide a valid phone number"),
 
-    body("avatar")
+    body("profileImage")
         .optional()
         .trim()
-        .isURL()
-        .withMessage("Invalid profile image URL")
+        .isURL().withMessage("Invalid profile image URL")
 ];
 
 exports.changePasswordValidator = [
@@ -157,4 +167,16 @@ exports.changePasswordValidator = [
             }
             return true;
         })
+];
+
+exports.changeUserStatusValidator = [
+    body("isActive")
+        .notEmpty().withMessage("Status is required")
+        .isBoolean().withMessage("Status must be true or false")
+];
+
+exports.userIdParamValidator = [
+    param("id")
+        .isMongoId()
+        .withMessage("Invalid user ID"),
 ];
