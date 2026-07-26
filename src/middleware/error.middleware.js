@@ -1,9 +1,20 @@
 const errorHandler = (err, req, res, next) => {
-    const statusCode = err.statusCode || 500;
+    let { statusCode, message } = err;
+
+    if (!statusCode) {
+        statusCode = 500;
+        message = process.env.NODE_ENV === 'production' 
+            ? 'Internal Server Error' 
+            : err.message;
+    }
 
     res.status(statusCode).json({
         success: false,
-        message: err.message || "Internal Server Error",
+        message,
+        // Only expose stack traces during local development
+        ...(process.env.NODE_ENV === "development" && {
+            stack: err.stack,
+        }),
     });
 };
 

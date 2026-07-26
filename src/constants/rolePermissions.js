@@ -1,0 +1,39 @@
+const ROLES = require("./roles");
+const PERMISSIONS = require("./permissions");
+
+const rolePermissions = Object.freeze({
+
+    [ROLES.SUPER_ADMIN]: [
+        "*"
+    ],
+
+    [ROLES.BRANCH_ADMIN]: [
+        PERMISSIONS.PRODUCT_VIEW,
+        PERMISSIONS.PRODUCT_CREATE,
+        PERMISSIONS.PRODUCT_UPDATE,
+        PERMISSIONS.PRODUCT_DELETE,
+
+        PERMISSIONS.ASSET_VIEW,
+        PERMISSIONS.ASSET_ASSIGN,
+
+        PERMISSIONS.REPORT_VIEW,
+    ],
+
+    [ROLES.INVENTORY_STAFF]: [
+        PERMISSIONS.PRODUCT_VIEW,
+        PERMISSIONS.PRODUCT_CREATE,
+        PERMISSIONS.PRODUCT_UPDATE,
+    ],
+
+    [ROLES.MAINTENANCE_STAFF]: [
+        PERMISSIONS.ASSET_VIEW,
+    ],
+
+    [ROLES.AUDITOR]: [
+        PERMISSIONS.PRODUCT_VIEW,
+        PERMISSIONS.ASSET_VIEW,
+        PERMISSIONS.REPORT_VIEW,
+    ]
+});
+
+exports.ROLE_PERMISSIONS = rolePermissions;

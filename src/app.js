@@ -15,7 +15,7 @@ const { API_VERSION } = require("./constants/api");
 const app = express();
 
 // Security
-app.use(helmet);
+app.use(helmet());
 
 // CORS
 app.use(
