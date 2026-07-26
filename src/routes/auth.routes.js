@@ -16,6 +16,7 @@ authRouter.post("/login", loginValidator, validate, authController.login);
 authRouter.post("/logout", protect, authController.logout);
 authRouter.get("/me", protect, authController.me);
 authRouter.put("/change-password", protect, changePasswordValidator, validate, authController.changePassword);
-authRouter.put("/profile", protect, updateProfileValidator, validate, authController.updateProfile);
+
+// authRouter.put("/profile", protect, updateProfileValidator, validate, authController.updateProfile);
 
 module.exports = authRouter;

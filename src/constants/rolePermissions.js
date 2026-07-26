@@ -8,6 +8,8 @@ const rolePermissions = Object.freeze({
     ],
 
     [ROLES.BRANCH_ADMIN]: [
+        PERMISSIONS.USER_CREATE,
+        
         PERMISSIONS.PRODUCT_VIEW,
         PERMISSIONS.PRODUCT_CREATE,
         PERMISSIONS.PRODUCT_UPDATE,

@@ -1,13 +1,14 @@
 require("dotenv").config();
 
 const mongoose = require("mongoose");
-const argon2 = require("argon2");
 
 const connectDB = require("../config/db");
 const User = require("../models/user.model");
 const Branch = require("../models/branch.model");
 const { ROLES } = require("../constants/roles");
-const { hashPassword } = require("../utils/password.util");
+
+const { hashPassword } = require("../services/auth.service");
+const generateEmployeeId = require("../utils/generateEmployeeId.util");
 
 const DEFAULT_BRANCH_NAME = "Head Office";
 
@@ -44,6 +45,7 @@ const seedSuperAdmin = async () => {
 
         // Check if Super Admin already exists
         const existingSuperAdmin = await User.findOne({
+            deletedAt: null,
             $or: [
                 { role: ROLES.SUPER_ADMIN },
                 { email: SUPER_ADMIN_EMAIL },
@@ -85,24 +87,29 @@ const seedSuperAdmin = async () => {
                 branch = newBranch;
             }
 
-            const hashedPassword = await hashPassword(
-                SUPER_ADMIN_PASSWORD
-            );
+            const hashedPassword = await hashPassword(SUPER_ADMIN_PASSWORD);
+
+            const employeeId = await generateEmployeeId(ROLES.SUPER_ADMIN);
 
             await User.create(
                 [
                     {
                         firstName: SUPER_ADMIN_FIRST_NAME,
                         lastName: SUPER_ADMIN_LAST_NAME,
+                        employeeId: employeeId,
                         email: SUPER_ADMIN_EMAIL,
                         password: hashedPassword,
                         role: ROLES.SUPER_ADMIN,
                         branch: branch._id,
                         phone: null,
-                        avatar: null,
+                        profileImage: null,
                         isActive: true,
-                        mustChangePassword: false,
+                        mustChangePassword: true,
+                        passwordChangedAt: null,
+                        lastLogin: null,
                         createdBy: null,
+                        updatedBy: null,
+                        deletedAt: null
                     },
                 ],
                 { session }

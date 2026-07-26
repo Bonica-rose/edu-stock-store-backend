@@ -1,5 +1,6 @@
 const { ROLES } = require('../constants/roles'); 
 const mongoose = require('mongoose');
+const Branch = require("../models/branch.model")
 
 const userSchema = new mongoose.Schema(
     {
@@ -13,6 +14,11 @@ const userSchema = new mongoose.Schema(
             required: [true, 'Last name is required'],
             trim: true,
         },
+        employeeId: {
+            type: String,
+            required: [true, 'Employee ID is required'],
+            trim: true,
+        },
         email: {
             type: String,
             required: [true, 'Email is required'],
@@ -22,6 +28,7 @@ const userSchema = new mongoose.Schema(
         password: {
             type: String,
             required: [true, 'Password is required'],
+            select: false,
         },
         phone: {
             type: String,
@@ -41,7 +48,7 @@ const userSchema = new mongoose.Schema(
             ref: 'Branch', // Must match your branches model name
             required: [true, 'Branch reference is required'],
         },
-        avatar: {
+        profileImage: {
             type: String,
             default: null,
         },
@@ -68,6 +75,15 @@ const userSchema = new mongoose.Schema(
             ref: 'User',
             default: null,
         },
+        updatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: 'User',
+            default: null,
+        },
+        deletedAt: {
+            type: Date,
+            default: null,
+        },
     },
     {
         timestamps: true, 
@@ -76,6 +92,7 @@ const userSchema = new mongoose.Schema(
 
 // Indexes
 userSchema.index({ email: 1 }, { unique: true });
+userSchema.index({ employeeId: 1 }, { unique: true });
 userSchema.index({ role: 1 });
 userSchema.index({ branch: 1 });
 userSchema.index({ isActive: 1 });
