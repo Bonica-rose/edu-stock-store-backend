@@ -10,3 +10,10 @@ exports.createUser = asyncHandler(async (req, res) => {
 
     successResponse(res, 201, "User created successfully", user);
 });
+
+exports.getUsers = asyncHandler(async (req, res) => {
+
+    const result = await userService.getUsers(req.query, req.user);
+
+    successResponse(res, 200, "Users retrieved successfully", result);
+});

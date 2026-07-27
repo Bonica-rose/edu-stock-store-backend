@@ -14,7 +14,7 @@ const authorize = (...requiredPermissions) => {
             return next(new ApiError(403, "Invalid user role"));
         }
 
-        const permissions = ROLE_PERMISSIONS[role] || [];
+        const permissions = ROLE_PERMISSIONS[role] ?? [];
 
         if (permissions.includes("*")) {
             return next();
@@ -23,6 +23,10 @@ const authorize = (...requiredPermissions) => {
         const hasPermission = requiredPermissions.every(permission =>
             permissions.includes(permission)
         );
+
+        console.log("Role:", role);
+        console.log("Permissions:", ROLE_PERMISSIONS[role]);
+        console.log("Required:", requiredPermissions);
 
         if (!hasPermission) {
             return next(

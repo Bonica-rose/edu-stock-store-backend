@@ -1,9 +1,9 @@
 const ROLES = Object.freeze({
-    SUPER_ADMIN: "Super Admin", // SAD
-    BRANCH_ADMIN: "Branch Admin", // BAD
-    INVENTORY_STAFF: "Inventory Staff", // IST
-    MAINTENANCE_STAFF: "Maintenance Staff", // MST
-    AUDITOR: "Auditor", // AUD
+    SUPER_ADMIN: "Super Admin",
+    BRANCH_ADMIN: "Branch Admin",
+    INVENTORY_STAFF: "Inventory Staff",
+    MAINTENANCE_STAFF: "Maintenance Staff",
+    AUDITOR: "Auditor",
 });
 
 const ROLE_CODES = Object.freeze({
