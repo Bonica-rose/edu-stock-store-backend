@@ -13,6 +13,9 @@ const {
     createUserValidator,
     getUsersValidator,
     userIdParamValidator,
+    updateUserValidator,
+    changeUserStatusValidator,
+    updateOwnProfileValidator,
 } = require("../validators/user.validator");
 
 // Protected Routes
@@ -30,34 +33,41 @@ userRouter.get(
     userController.getUsers
 );
 
-// userRouter.get(
-//     "/:id",
-//     protect, authorize(PERMISSIONS.USER_VIEW),
-//     userIdParamValidator, validate,
-//     userController.getUserById
-// );
+userRouter.get(
+    "/:id",
+    protect, authorize(PERMISSIONS.USER_VIEW),
+    userIdParamValidator, validate,
+    userController.getUserById
+);
 
-// userRouter.put(
-//     "/:id",
-//     protect, authorize(PERMISSIONS.USER_UPDATE),
-//     userIdParamValidator, updateUserValidator,
-//     validate,
-//     userController.updateUser
-// );
+userRouter.patch(
+    "/:id",
+    protect, authorize(PERMISSIONS.USER_UPDATE),
+    userIdParamValidator, updateUserValidator,
+    validate,
+    userController.updateUser
+);
 
-// userRouter.put(
-//     "/:id/status",
-//     protect, authorize(PERMISSIONS.USER_UPDATE),
-//     userIdParamValidator, changeUserStatusValidator, validate,
-//     userController.changeUserStatus
-// );
+userRouter.patch(
+    "/:id/status",
+    protect, authorize(PERMISSIONS.USER_STATUS_UPDATE),
+    userIdParamValidator, changeUserStatusValidator, validate,
+    userController.changeUserStatus
+);
 
-// userRouter.delete(
-//     "/:id",
-//     protect, authorize(PERMISSIONS.USER_DELETE),
-//     userIdParamValidator, validate,
-//     userController.deleteUser
-// );
+userRouter.delete(
+    "/:id",
+    protect, authorize(PERMISSIONS.USER_DELETE),
+    userIdParamValidator, validate,
+    userController.deleteUser
+);
+
+userRouter.patch(
+    "/profile",
+    protect,
+    updateOwnProfileValidator,validate,
+    userController.updateOwnProfile
+);
 
 
 module.exports = userRouter;

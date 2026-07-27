@@ -8,6 +8,7 @@ const Permissions = Object.freeze({
     ASSET_ASSIGN: "asset:assign",
 
     USER_MANAGE: "user:manage",
+    
     USER_VIEW: "user:view",
     USER_UPDATE: "user:update",
     USER_CREATE: "user:create",
