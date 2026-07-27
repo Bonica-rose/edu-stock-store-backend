@@ -7,6 +7,7 @@ const cookieParser = require("cookie-parser");
 const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const branchRoutes = require("./routes/branch.routes");
+const categoryRoutes = require("./routes/category.routes")
 
 // Middlewares
 const { logger } = require("./config/logger.js");
@@ -42,6 +43,7 @@ app.use(logger);
 app.use(`${API_VERSION}/auth`, authRoutes);
 app.use(`${API_VERSION}/users`, userRoutes);
 app.use(`${API_VERSION}/branches`, branchRoutes);
+app.use(`${API_VERSION}/categories`, categoryRoutes);
 
 // 404
 app.use(notFound);

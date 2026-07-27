@@ -1,5 +1,7 @@
 const Branch = require("../models/branch.model");
 const ApiError = require("../utils/apiError.util");
+const Inventory = require("../models/inventory.model");
+const Asset = require("../models/asset.model");
 
 const createBranch = async (branchData, userId) => {
     // Check duplicate branch code
@@ -180,22 +182,17 @@ const changeBranchStatus = async (branchId, isActive, userId) => {
             throw new ApiError(400, "Cannot deactivate branch. Active users are assigned to this branch.");
         }
 
-        // Future checks
-        // const inventoryExists = await Inventory.exists({ branch: branchId });
-        // if (inventoryExists) {
-        //     throw new ApiError(
-        //         400,
-        //         "Cannot deactivate branch. Inventory exists."
-        //     );
-        // }
+        // Check Inventory
+        const inventoryExists = await Inventory.exists({ branch: branchId });
+        if (inventoryExists) {
+            throw new ApiError(400, "Cannot deactivate branch. Inventory exists.");
+        }
 
-        // const assetExists = await Asset.exists({ branch: branchId, isActive: true });
-        // if (assetExists) {
-        //     throw new ApiError(
-        //         400,
-        //         "Cannot deactivate branch. Active assets exist."
-        //     );
-        // }
+        // Check Assets
+        const assetExists = await Asset.exists({ branch: branchId, isActive: true });
+        if (assetExists) {
+            throw new ApiError(400, "Cannot deactivate branch. Active assets exist.");
+        }
     }
 
     branch.isActive = isActive;
