@@ -5,7 +5,7 @@ const User = require("../models/user.model");
 const { mapUser } = require("../utils/userResponse.util");
 
 /*
-** Part 1 – Helpers
+|--- Part 1 – Helpers
 */
 const hashPassword = async (password) => {
     try {
@@ -72,7 +72,7 @@ const getCookieOptions = () => {
 };
 
 /*
-** Part 2 – Authentication
+|--- Part 2 – Authentication
 */
 const login = async ({ email, password }) => {
 
@@ -113,9 +113,20 @@ const login = async ({ email, password }) => {
 
 const logout = () => true;
 
-/*
-** Part 3 – Password Management
-*/
+const getCurrentUser = async (id) => {
+
+    const user = await User
+        .findOne({ _id: id, deletedAt: null })  
+        .populate("branch", "branchName branchCode")
+        .populate("createdBy", "employeeId firstName lastName")
+        .populate("updatedBy", "employeeId firstName lastName");
+
+    if (!user)
+        throw new ApiError(404, "User not found");
+
+    return mapUser(user);    
+};
+
 const changePassword = async (id, currentPassword, newPassword) => {
 
     const user = await User.findOne({_id: id, deletedAt: null}).select("+password");
@@ -136,20 +147,6 @@ const changePassword = async (id, currentPassword, newPassword) => {
     await user.save();
 };
 
-const getCurrentUser = async (id) => {
-
-    const user = await User
-        .findOne({ _id: id, deletedAt: null })  
-        .populate("branch", "branchName branchCode")
-        .populate("createdBy", "employeeId firstName lastName")
-        .populate("updatedBy", "employeeId firstName lastName");
-
-    if (!user)
-        throw new ApiError(404, "User not found");
-
-    return mapUser(user);    
-};
-
 module.exports = {
     hashPassword,
     verifyPassword,
@@ -158,6 +155,6 @@ module.exports = {
     getCookieOptions,
     login,
     logout,
-    changePassword,
     getCurrentUser,
+    changePassword,
 };
