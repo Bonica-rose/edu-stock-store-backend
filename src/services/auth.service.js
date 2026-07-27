@@ -2,6 +2,7 @@ const argon2 = require("argon2");
 const jwt = require("jsonwebtoken");
 const ApiError = require("../utils/apiError.util");
 const User = require("../models/user.model");
+const { mapUser } = require("../utils/userResponse.util");
 
 /*
 ** Part 1 – Helpers
@@ -78,7 +79,9 @@ const login = async ({ email, password }) => {
     const user = await User
         .findOne({ email: email.toLowerCase().trim(), deletedAt: null })
         .select("+password")
-        .populate("branch", "branchCode branchName");
+        .populate("branch", "branchCode branchName")
+        .populate("createdBy", "employeeId firstName lastName")
+        .populate("updatedBy", "employeeId firstName lastName");
     
     if (!user) {
         throw new ApiError(401, "Invalid email or password");
@@ -100,24 +103,11 @@ const login = async ({ email, password }) => {
 
     const safeUser = user.toObject();
     delete safeUser.password;
-    delete safeUser.__v;
+    delete safeUser.__v;    
 
     return {
         token,
-        user: {
-            _id: safeUser._id,
-            employeeId: safeUser.employeeId,
-            firstName: safeUser.firstName,
-            lastName: safeUser.lastName,
-            email: safeUser.email,
-            phone: safeUser.phone,
-            role: safeUser.role,
-            branch: safeUser.branch,
-            profileImage: safeUser.profileImage,
-            isActive: safeUser.isActive,
-            lastLogin: safeUser.lastLogin,
-            mustChangePassword: user.mustChangePassword,
-        }        
+        user: mapUser(safeUser),        
     };
 };
 
@@ -157,20 +147,7 @@ const getCurrentUser = async (id) => {
     if (!user)
         throw new ApiError(404, "User not found");
 
-    return {
-        _id: user._id,
-        employeeId: user.employeeId,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        phone: user.phone,
-        role: user.role,
-        branch: user.branch,
-        profileImage: user.profileImage,
-        isActive: user.isActive,
-        lastLogin: user.lastLogin,
-        mustChangePassword: user.mustChangePassword,
-    };
+    return mapUser(user);    
 };
 
 module.exports = {

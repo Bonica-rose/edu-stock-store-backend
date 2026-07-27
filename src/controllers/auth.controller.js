@@ -28,7 +28,7 @@ exports.me = asyncHandler(async (req, res) => {
     
     const user = await authService.getCurrentUser(req.user._id);
 
-    successResponse(res, 200, "Login successful", user);
+    successResponse(res, 200, "Current user", user);
 });
 
 exports.changePassword = asyncHandler(async (req, res) => {   

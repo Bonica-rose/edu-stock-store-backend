@@ -1,14 +1,14 @@
-const ROLES = require("./roles");
-const PERMISSIONS = require("./permissions");
+const { ROLES } = require("./roles");
+const { PERMISSIONS } = require("./permissions");
 
 const rolePermissions = Object.freeze({
 
-    [ROLES.SUPER_ADMIN]: [
-        "*"
-    ],
+    [ROLES.SUPER_ADMIN]: ["*"],
 
     [ROLES.BRANCH_ADMIN]: [
+        PERMISSIONS.USER_VIEW,
         PERMISSIONS.USER_CREATE,
+        PERMISSIONS.USER_UPDATE,
         
         PERMISSIONS.PRODUCT_VIEW,
         PERMISSIONS.PRODUCT_CREATE,

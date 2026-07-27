@@ -1,4 +1,4 @@
-const { body, param } = require('express-validator');
+const { body, param, query } = require('express-validator');
 const { ROLES } = require('../constants/roles'); 
 
 const ALLOWED_ROLES = Object.values(ROLES);
@@ -53,6 +53,59 @@ exports.createUserValidator = [
         .trim()
         .notEmpty().withMessage("Branch is required")
         .isMongoId().withMessage("Invalid branch ID")
+];
+
+exports.getUsersValidator = [
+
+    query("page")
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage("Page must be at least 1"),
+
+    query("limit")
+        .optional()
+        .isInt({ min: 1, max: 100 })
+        .withMessage("Limit must be between 1 and 100"),
+
+    query("search")
+        .optional()
+        .trim()
+        .isLength({ max: 100 })
+        .withMessage("Search cannot exceed 100 characters"),
+
+    query("role")
+        .optional()
+        .isIn(Object.values(ROLES))
+        .withMessage("Invalid role"),
+
+    query("branch")
+        .optional()
+        .isMongoId()
+        .withMessage("Invalid branch ID"),
+
+    query("isActive")
+        .optional()
+        .isBoolean()
+        .withMessage("isActive must be true or false"),
+
+    query("sortBy")
+        .optional()
+        .isIn([
+            "employeeId",
+            "firstName",
+            "lastName",
+            "email",
+            "role",
+            "isActive",
+            "lastLogin",
+            "createdAt",
+        ])
+        .withMessage("Invalid sort field"),
+
+    query("order")
+        .optional()
+        .isIn(["asc", "desc"])
+        .withMessage("Order must be asc or desc"),
 ];
 
 exports.updateUserValidator = [
