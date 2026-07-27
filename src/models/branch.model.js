@@ -7,6 +7,7 @@ const branchSchema = new mongoose.Schema(
             required: [true, "Branch code is required"],
             trim: true,
             uppercase: true,
+            immutable: true,
         },
 
         branchName: {
@@ -44,6 +45,7 @@ const branchSchema = new mongoose.Schema(
             type: String,
             trim: true,
             default: null,
+            match: [/^[6-9]\d{9}$/, "Invalid phone number"],
         },
 
         email: {
@@ -51,6 +53,7 @@ const branchSchema = new mongoose.Schema(
             trim: true,
             lowercase: true,
             default: null,
+            match: [/^\S+@\S+\.\S+$/, "Invalid email"],
         },
 
         manager: {
@@ -63,6 +66,18 @@ const branchSchema = new mongoose.Schema(
             type: Boolean,
             default: true,
         },
+
+        createdBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            required: true,
+        },
+
+        updatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
+        },
     },
     {
         timestamps: true,
@@ -71,7 +86,7 @@ const branchSchema = new mongoose.Schema(
 
 // Indexes
 branchSchema.index({ branchCode: 1 }, { unique: true });
-branchSchema.index({ branchName: 1 });
+branchSchema.index({ branchName: 1 }, { unique: true });
 branchSchema.index({ city: 1 });
 branchSchema.index({ state: 1 });
 branchSchema.index({ manager: 1 });
