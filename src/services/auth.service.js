@@ -144,6 +144,7 @@ const changePassword = async (id, currentPassword, newPassword) => {
     user.password = await hashPassword(newPassword);
     user.passwordChangedAt = new Date();
     user.mustChangePassword = false;
+    user.updatedBy = user._id;
     await user.save();
 };
 

@@ -1,3 +1,4 @@
+const mongoose = require("mongoose");
 const User = require("../models/user.model");
 const Branch = require("../models/branch.model");
 const ApiError = require("../utils/apiError.util");
@@ -13,39 +14,55 @@ const { mapUser, mapUsers } = require("../utils/userResponse.util");
 exports.createUser = async (userData, loggedInUser) => {
     const { firstName, lastName, email, password, phone, role, branch, profileImage} = userData;
 
-    // Only valid roles
+    // Validate role
     if (!Object.values(ROLES).includes(role)) {
-        throw new ApiError(400, "Invalid role");
+        throw new ApiError(400, "Invalid role.");
     }
 
-    // Validate creator role 
+    // Only Super Admin & Branch Admin can create users
     if (![ROLES.SUPER_ADMIN,ROLES.BRANCH_ADMIN].includes(loggedInUser.role)) {
         throw new ApiError(403, "You are not allowed to create users.");
     }
 
-    // Validate Branch Admin restrictions
-    if (loggedInUser.role === ROLES.BRANCH_ADMIN && branch.toString() !== loggedInUser.branch.toString()) {
-        throw new ApiError(403, "Branch Admin can create users only in their own branch.");
+    // Branch Admin restrictions
+    if (loggedInUser.role === ROLES.BRANCH_ADMIN) {
+        // Can create users only in own branch
+        if (branch.toString() !== loggedInUser.branch.toString()) {
+            throw new ApiError(403, "Branch Admin can create users only in their own branch.");
+        }
+
+        // Can create only allowed roles
+        if (!BRANCH_ADMIN_ALLOWED_USER_ROLES.includes(role)) {
+            throw new ApiError(403, "Branch Admin can create only Inventory Staff, Maintenance Staff and Auditor.");
+        }
     }
 
-    // Branch Admin role restriction 
-    if (loggedInUser.role === ROLES.BRANCH_ADMIN &&!BRANCH_ADMIN_ALLOWED_USER_ROLES.includes(role)) {
-        throw new ApiError(403, "Branch Admin can create only Inventory Staff, Maintenance Staff and Auditor.");
-    }
-
-    // Check branch exists 
+    // Validate branch
     const branchExists = await Branch.exists({ _id: branch, isActive: true,});
     if (!branchExists) {
         throw new ApiError(404, "Branch not found");
     }
 
-    // Email already exists
+    // Only one Branch Admin per branch
+    if (role === ROLES.BRANCH_ADMIN) {
+        const existingBranchAdmin = await User.findOne({
+            role: ROLES.BRANCH_ADMIN,
+            branch,
+            deletedAt: null,
+        });
+
+        if (existingBranchAdmin) {
+            throw new ApiError(409, "This branch already has a Branch Admin.");
+        }
+    }
+
+    // Email uniqueness
     const existingUser = await User.findOne({email: email.toLowerCase().trim(), deletedAt: null });
     if (existingUser) {
         throw new ApiError(409, "Email already exists");
     }
 
-    // Identical-name check
+    // Identical First name & Last name
     if (firstName.trim().toLowerCase() === lastName.trim().toLowerCase()) {
         throw new ApiError(400, "Last name cannot be identical to first name");
     }
@@ -56,26 +73,50 @@ exports.createUser = async (userData, loggedInUser) => {
     // Hash password
     const hashedPassword = await hashPassword(password);
 
-    // Create user
-    const user = await User.create({
-        firstName: firstName.trim(),
-        lastName: lastName.trim(),
-        employeeId,
-        email: email.toLowerCase().trim(),
-        password: hashedPassword,
-        phone: phone?.trim() || null,
-        role,
-        branch,
-        profileImage: profileImage ?? null,
+    // Transaction starts here
+    const session = await mongoose.startSession();
+    let user;
+    try {
+        session.startTransaction();
 
-        isActive: true,
-        mustChangePassword: true,
+        // Create user
+        user = await User.create(
+            [{
+                firstName: firstName.trim(),
+                lastName: lastName.trim(),
+                employeeId,
+                email: email.trim().toLowerCase(),
+                password: hashedPassword,
+                phone: phone?.trim() || null,
+                role,
+                branch,
+                profileImage: profileImage ?? null,
 
-        createdBy: loggedInUser._id,
-        updatedBy: loggedInUser._id,
-    });
+                isActive: true,
+                mustChangePassword: true,
 
-    // Populated branch
+                createdBy: loggedInUser._id,
+                updatedBy: loggedInUser._id,
+            }],
+            { session }
+        );
+        user = user[0];
+
+        // Update(Synchronize) Branch Manager
+        if (role === ROLES.BRANCH_ADMIN) {
+            await Branch.findByIdAndUpdate(branch,{
+                manager: user._id,
+            },{ session });
+        }
+
+        await session.commitTransaction();
+    } catch (error) {
+        await session.abortTransaction();
+        throw error;
+    } finally {
+        session.endSession();
+    }
+    
     await user.populate("branch", "branchCode branchName")
         .populate("createdBy", "employeeId firstName lastName")
         .populate("updatedBy", "employeeId firstName lastName");
@@ -213,100 +254,156 @@ exports.updateUser = async (userId, userData, loggedInUser) => {
 
     /* To update user, it may contain only firstName, lastName, email, password, 
      phone, role, branch, profileImage, isActive */
+    
+    const session = await mongoose.startSession();    
+    try {
+        session.startTransaction();
 
-    const user = await User.findOne({_id: userId, deletedAt: null});
-    if (!user) {
-        throw new ApiError(404, "User not found");
+        const user = await User.findOne({_id: userId, deletedAt: null}).session(session);
+        if (!user) {
+            throw new ApiError(404, "User not found");
+        }
+
+        // Save old values for synchronization
+        const oldRole = user.role;
+        const oldBranch = user.branch?.toString();
+
+        // Branch Admin restrictions
+        if (loggedInUser.role === ROLES.BRANCH_ADMIN) {
+
+            // Can update only users in own branch
+            if (user.branch.toString() !== loggedInUser.branch.toString()) {
+                throw new ApiError(403, "You can update only users in your own branch.");
+            }
+
+            // Cannot update another Branch Admin or Super Admin
+            if ([ROLES.SUPER_ADMIN, ROLES.BRANCH_ADMIN].includes(user.role)) {
+                throw new ApiError(403,"You cannot update this user.");
+            }
+
+            // Cannot assign restricted users
+            if (userData.role && !BRANCH_ADMIN_ALLOWED_USER_ROLES.includes(userData.role)) {
+                throw new ApiError(403, "Branch Admin cannot assign this role.");
+            }
+
+            // Cannot move user to another branch
+            if (userData.branch && userData.branch.toString() !== loggedInUser.branch.toString()) {
+                throw new ApiError(403, "Users can only belong to your own branch.");
+            }
+        }
+
+        // Email uniqueness 
+        if (userData.email && userData.email.trim().toLowerCase() !== user.email) {
+            const emailExists = await User.exists({
+                email: userData.email.trim().toLowerCase(),
+                deletedAt: null,
+                _id: { $ne: userId },
+            }).session(session);
+
+            if (emailExists) {
+                throw new ApiError(409, "Email already exists");
+            }
+        }
+
+        // Branch  Validation
+        if (userData.branch) {
+            const branchExists = await Branch.exists({
+                _id: userData.branch,
+                isActive: true,
+            }).session(session);
+
+            if (!branchExists) {
+                throw new ApiError(404, "Branch not found");
+            }
+        }
+
+        // Branch Admin uniqueness
+        const newRole = userData.role ?? user.role;
+        const newBranch = userData.branch ?? user.branch;
+
+        if (newRole === ROLES.BRANCH_ADMIN) {
+            const existingBranchAdmin = await User.findOne({
+                role: ROLES.BRANCH_ADMIN,
+                branch: newBranch,
+                deletedAt: null,
+                _id: { $ne: userId },
+            }).session(session);
+
+            if (existingBranchAdmin) {
+                throw new ApiError(409, "This branch already has a Branch Admin.");
+            }
+        }
+
+        // First & Last name validation
+        const newFirstName = userData.firstName ?? user.firstName;
+        const newLastName = userData.lastName ?? user.lastName;
+        if (newFirstName.trim().toLowerCase() === newLastName.trim().toLowerCase()) {
+            throw new ApiError(400, "Last name cannot be identical to first name");
+        }    
+
+        // Update allowed fields only
+        if (userData.firstName !== undefined)
+            user.firstName = userData.firstName.trim();
+
+        if (userData.lastName !== undefined)
+            user.lastName = userData.lastName.trim();
+
+        if (userData.email !== undefined)
+            user.email = userData.email.trim().toLowerCase();
+
+        if (userData.phone !== undefined)
+            user.phone = userData.phone?.trim() || null;
+
+        if (userData.role !== undefined)
+            user.role = userData.role;
+
+        if (userData.branch !== undefined)
+            user.branch = userData.branch;    
+
+        if (userData.profileImage !== undefined)
+            user.profileImage = userData.profileImage || null;
+
+        if (userData.isActive !== undefined)
+            user.isActive = userData.isActive;
+
+        user.updatedBy = loggedInUser._id;
+        await user.save({ session });
+
+        /* -----------------------------
+        ** Synchronize Branch.manager
+        ----------------------------- */
+
+        // Demoted or moved away from old branch
+        if (
+            oldRole === ROLES.BRANCH_ADMIN &&
+            (newRole !== ROLES.BRANCH_ADMIN || oldBranch !== newBranch.toString())
+        ) {
+            await Branch.findByIdAndUpdate(oldBranch, {
+                manager: null,
+            },{ session });
+        }
+
+        // Assigned or moved as Branch Admin
+        if (newRole === ROLES.BRANCH_ADMIN) {
+            await Branch.findByIdAndUpdate(newBranch, {
+                manager: user._id,
+            },{ session });
+        }
+
+        await session.commitTransaction();
+
+        await user.populate("branch", "branchCode branchName");
+        await user.populate("createdBy", "employeeId firstName lastName");
+        await user.populate("updatedBy", "employeeId firstName lastName");
+
+        return mapUser(user);
+                
+    } catch (error) {
+        await session.abortTransaction();
+        throw error;
+    } finally {
+        session.endSession();
     }
-
-    // Branch Admin Business Rules
-    if (loggedInUser.role === ROLES.BRANCH_ADMIN) {
-
-        // Can update only users in own branch
-        if (user.branch.toString() !== loggedInUser.branch.toString()) {
-            throw new ApiError(403, "You can update only users in your own branch.");
-        }
-
-        // Cannot update another Branch Admin or Super Admin
-        if ([ROLES.SUPER_ADMIN, ROLES.BRANCH_ADMIN].includes(user.role)) {
-            throw new ApiError(403,"You cannot update this user.");
-        }
-
-        // Cannot promote users
-        if (userData.role && !BRANCH_ADMIN_ALLOWED_USER_ROLES.includes(userData.role)) {
-            throw new ApiError(403, "Branch Admin cannot assign this role.");
-        }
-
-        // Cannot move user to another branch
-        if (userData.branch && userData.branch.toString() !== loggedInUser.branch.toString()) {
-            throw new ApiError(403, "Users can only belong to your own branch.");
-        }
-    }
-
-    // Email uniqueness 
-    if (userData.email && userData.email.trim().toLowerCase() !== user.email) {
-
-        const emailExists = await User.exists({
-            email: userData.email.trim().toLowerCase(),
-            deletedAt: null,
-            _id: { $ne: userId },
-        });
-
-        if (emailExists) {
-            throw new ApiError(409, "Email already exists");
-        }
-
-        user.email = userData.email.trim().toLowerCase();
-    }
-
-    // Validate branch  
-    if (userData.branch) {
-
-        const branchExists = await Branch.exists({
-            _id: userData.branch,
-            isActive: true,
-        });
-
-        if (!branchExists) {
-            throw new ApiError(404, "Branch not found");
-        }
-
-        user.branch = userData.branch;
-    }
-
-    const newFirstName = userData.firstName ?? user.firstName;
-    const newLastName = userData.lastName ?? user.lastName;
-    if (newFirstName.trim().toLowerCase() === newLastName.trim().toLowerCase()) {
-        throw new ApiError(400, "Last name cannot be identical to first name");
-    }
-
-    // Update allowed fields only
-    if (userData.firstName !== undefined)
-        user.firstName = userData.firstName.trim();
-
-    if (userData.lastName !== undefined)
-        user.lastName = userData.lastName.trim();
-
-    if (userData.phone !== undefined)
-        user.phone = userData.phone?.trim() || null;
-
-    if (userData.role !== undefined)
-        user.role = userData.role;
-
-    if (userData.profileImage !== undefined)
-        user.profileImage = userData.profileImage || null;
-
-    if (userData.isActive !== undefined)
-        user.isActive = userData.isActive;
-
-    user.updatedBy = loggedInUser._id;
-    await user.save();
-
-    await user.populate("branch", "branchCode branchName");
-    await user.populate("createdBy", "employeeId firstName lastName");
-    await user.populate("updatedBy", "employeeId firstName lastName");
-
-    return mapUser(user);
 };
 
 exports.updateOwnProfile = async (userId, profileData) => {
@@ -353,34 +450,84 @@ exports.updateOwnProfile = async (userId, profileData) => {
 
 exports.changeUserStatus = async (userId, isActive, loggedInUser) => {
 
-    const user = await User.findOne({_id: userId,deletedAt: null });
-    if (!user) {
-        throw new ApiError(404, "User not found");
-    }
+    const session = await mongoose.startSession();
+    try {
+        session.startTransaction();
 
-    // Prevent self deactivation
-    if (user._id.toString() === loggedInUser._id.toString()) {
-        throw new ApiError(400, "You cannot change your own account status.");
-    }
-
-    // Prevent deactivate of users in other branch 
-    if (loggedInUser.role === ROLES.BRANCH_ADMIN) {
-
-        if (user.branch.toString() !== loggedInUser.branch.toString()) {
-            throw new ApiError(
-                403, "You can change status only for users in your own branch.");
+        const user = await User.findOne({_id: userId,deletedAt: null }).session(session);
+        if (!user) {
+            throw new ApiError(404, "User not found");
         }
 
-        if (!BRANCH_ADMIN_ALLOWED_USER_ROLES.includes(user.role)) {
-            throw new ApiError(403, "You cannot change the status of this user.");
+        // Prevent self status change
+        if (user._id.toString() === loggedInUser._id.toString()) {
+            throw new ApiError(400, "You cannot change your own account status.");
         }
+
+        // Branch Admin restrictions
+        if (loggedInUser.role === ROLES.BRANCH_ADMIN) {
+
+            // Can manage only users in own branch
+            if (user.branch.toString() !== loggedInUser.branch.toString()) {
+                throw new ApiError(403, "You can change status only for users in your own branch.");
+            }
+
+            // Cannot change Super Admin or Branch Admin
+            if (!BRANCH_ADMIN_ALLOWED_USER_ROLES.includes(user.role)) {
+                throw new ApiError(403, "You cannot change the status of this user.");
+            }
+        }
+
+        // Already in requested status
+        if (user.isActive === isActive) {
+            throw new ApiError(400, `User is already ${isActive ? "active" : "inactive"}.` );
+        }
+
+        user.isActive = isActive;
+        user.updatedBy = loggedInUser._id;
+        await user.save({ session });
+
+        // Synchronize Branch Manager 
+        if (user.role === ROLES.BRANCH_ADMIN) {
+            if (!isActive) {                
+                // Remove manager when Branch Admin is deactivated
+                await Branch.findByIdAndUpdate(user.branch,{
+                    manager: null,
+                },{ session });
+            } else {
+                // Ensure another active Branch Admin doesn't exist
+                const existingBranchAdmin = await User.findOne({
+                    _id: { $ne: user._id },
+                    role: ROLES.BRANCH_ADMIN,
+                    branch: user.branch,
+                    isActive: true,
+                    deletedAt: null,
+                }).session(session);
+
+                if (existingBranchAdmin) {
+                    throw new ApiError(409, "This branch already has an active Branch Admin.");
+                }
+                await Branch.findByIdAndUpdate(user.branch,{
+                    manager: user._id,
+                },{ session });
+            }
+        }
+
+        await session.commitTransaction();
+
+        await user
+            .populate("branch", "branchCode branchName")
+            .populate("createdBy", "employeeId firstName lastName")
+            .populate("updatedBy", "employeeId firstName lastName");
+
+        return mapUser(user);
+
+    } catch (error) {
+        await session.abortTransaction();
+        throw error;
+    } finally {
+        await session.endSession();
     }
-
-    user.isActive = isActive;
-    user.updatedBy = loggedInUser._id;
-    await user.save();
-
-    return mapUser(user);
 };
 
 exports.deleteUser = async (userId, loggedInUser) => {

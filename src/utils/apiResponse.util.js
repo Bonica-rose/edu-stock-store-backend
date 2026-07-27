@@ -2,11 +2,16 @@ exports.successResponse = (
     res,
     statusCode,
     message,
-    data = null
+    data = null,
+    meta = null
 ) => {
-    return res.status(statusCode).json({
-        success: true,
-        message,
-        data,
-    });
+    const response = {
+        success: true, message, data,
+    };
+
+    if (meta) {
+        response.meta = meta;
+    }
+
+    return res.status(statusCode).json(response);
 };

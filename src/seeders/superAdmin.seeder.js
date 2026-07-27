@@ -64,10 +64,7 @@ const seedSuperAdmin = async () => {
         try {
             session.startTransaction();
 
-            let branch = await Branch.findOne({
-                branchName: DEFAULT_BRANCH_NAME,
-            }).session(session);
-
+            let branch = await Branch.findOne({ branchCode: "HO" }).session(session);
             if (!branch) {
                 const [newBranch] = await Branch.create(
                     [
@@ -79,6 +76,8 @@ const seedSuperAdmin = async () => {
                             state: "Kerala",
                             country: "India",
                             isActive: true,
+                            createdBy: null,
+                            updatedBy: null,
                         },
                     ],
                     { session }
@@ -91,7 +90,7 @@ const seedSuperAdmin = async () => {
 
             const employeeId = await generateEmployeeId(ROLES.SUPER_ADMIN);
 
-            await User.create(
+            const [superAdmin] = await User.create(
                 [
                     {
                         firstName: SUPER_ADMIN_FIRST_NAME,
@@ -114,6 +113,12 @@ const seedSuperAdmin = async () => {
                 ],
                 { session }
             );
+
+            if (!branch.createdBy) {
+                branch.createdBy = superAdmin._id;
+                branch.updatedBy = superAdmin._id;
+                await branch.save({ session });
+            }
 
             await session.commitTransaction();
 

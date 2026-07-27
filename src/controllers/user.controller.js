@@ -32,7 +32,7 @@ exports.updateUser = asyncHandler(async (req, res) => {
 
 exports.updateOwnProfile = asyncHandler(async (req, res) => {
 
-    const user = await userService.updateOwnProfile(req.user.id, req.body);
+    const user = await userService.updateOwnProfile(req.user._id, req.body);
 
     successResponse(res, 200, "Profile updated successfully", user);
 });
