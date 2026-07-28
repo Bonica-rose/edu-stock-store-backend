@@ -1,12 +1,12 @@
 const express = require("express");
 const stockMoveRouter = express.Router();
 
-const { PERMISSIONS } = require("../constants/permission.constants");
+const { PERMISSIONS } = require("../constants/permissions");
 const stockMovementController = require("../controllers/stockMovement.controller");
 
-const protect = require("../middlewares/auth.middleware");
-const authorize = require("../middlewares/authorize.middleware");
-const validate = require("../middlewares/validate.middleware");
+const protect = require("../middleware/auth.middleware");
+const authorize = require("../middleware/authorize.middleware");
+const validate = require("../middleware/validate");
 
 const {
     stockMovementValidator,

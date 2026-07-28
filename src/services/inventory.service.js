@@ -3,7 +3,7 @@ const Category = require("../models/category.model");
 const Vendor = require("../models/vendor.model");
 const Branch = require("../models/branch.model");
 const ApiError = require("../utils/apiError.util");
-const { ROLES } = require("../constants/role.constants");
+const { ROLES } = require("../constants/roles");
 
 const getInventories = async (query, user) => {
     const {

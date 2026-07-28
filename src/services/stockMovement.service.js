@@ -5,7 +5,7 @@ const StockMovement = require("../models/stockMovement.model");
 const Branch = require("../models/branch.model");
 
 const ApiError = require("../utils/apiError.util");
-const { ROLES } = require("../constants/role.constants");
+const { ROLES } = require("../constants/roles");
 
 
 // Stock In
