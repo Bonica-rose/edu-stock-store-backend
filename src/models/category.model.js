@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const User = require("../models/user.model");
 const { CATEGORY_TYPES } = require("../constants/category.constants");
 
 const categorySchema = new mongoose.Schema(
@@ -41,6 +42,11 @@ const categorySchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             required: true,
+        },
+        updatedBy: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "User",
+            default: null,
         },
     },
     {

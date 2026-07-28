@@ -80,12 +80,6 @@ exports.changeCategoryStatusValidator = [
     param("id")
         .isMongoId()
         .withMessage("Invalid category ID."),
-
-    body("isActive")
-        .notEmpty()
-        .withMessage("Status is required.")
-        .isBoolean()
-        .withMessage("isActive must be true or false."),
 ];
 
 exports.getCategoriesValidator = [

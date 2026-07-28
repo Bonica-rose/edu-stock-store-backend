@@ -44,7 +44,8 @@ const getCategories = async (query) => {
 
     const [categories, total] = await Promise.all([
         Category.find(filter)
-            .populate("createdBy", "firstName lastName")
+            .populate("createdBy", "employeeId firstName lastName email")
+            .populate("updatedBy", "employeeId firstName lastName email")
             .sort(sort)
             .skip(skip)
             .limit(Number(limit))
@@ -66,7 +67,8 @@ const getCategories = async (query) => {
 
 const getCategory = async (categoryId) => {
     const category = await Category.findById(categoryId)
-        .populate("createdBy", "firstName lastName email")
+        .populate("createdBy", "employeeId firstName lastName email")
+        .populate("updatedBy", "employeeId firstName lastName email")
         .lean();
 
     if (!category) {
@@ -113,7 +115,7 @@ const createCategory = async (categoryData, userId) => {
     });
 
     return await Category.findById(category._id)
-        .populate("createdBy", "firstName lastName email")
+        .populate("createdBy", "employeeId firstName lastName email")
         .lean();
 };
 
@@ -173,27 +175,26 @@ const updateCategory = async (categoryId, categoryData) => {
     await category.save();
 
     return await Category.findById(category._id)
-        .populate("createdBy", "firstName lastName email")
+        .populate("createdBy", "employeeId firstName lastName email")
+        .populate("updatedBy", "employeeId firstName lastName email")
         .lean();
 };
 
-const changeCategoryStatus = async (categoryId, isActive) => {
+const changeCategoryStatus = async (categoryId, userId) => {
     
     const category = await Category.findById(categoryId);
     if (!category) {
         throw new ApiError(404, "Category not found.");
     }
 
-    // Avoid unnecessary update
-    if (category.isActive === isActive) {
-        throw new ApiError(400, `Category is already ${isActive ? "active" : "inactive"}.`);
-    }
-
-    category.isActive = isActive;
+    // Toggle status
+    category.isActive = !category.isActive;
+    category.updatedBy = userId;
     await category.save();
 
     return await Category.findById(category._id)
-        .populate("createdBy", "firstName lastName email")
+        .populate("createdBy", "employeeId firstName lastName email")
+        .populate("updatedBy", "employeeId firstName lastName email")
         .lean();
 };
 

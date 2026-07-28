@@ -31,7 +31,7 @@ exports.updateCategory = asyncHandler(async (req, res) => {
 
 exports.changeCategoryStatus = asyncHandler(async (req, res) => {
 
-    const category = await categoryService.changeCategoryStatus(req.params.id, req.body.isActive);
+    const category = await categoryService.changeCategoryStatus(req.params.id, req.user._id);
 
     successResponse(res, 200, "Category status updated successfully", category);
 });

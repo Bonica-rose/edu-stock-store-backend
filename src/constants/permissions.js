@@ -17,6 +17,11 @@ const Permissions = Object.freeze({
     CATEGORY_DELETE: "category:delete",
     CATEGORY_CHANGE_STATUS: "category:status:update",
 
+    VENDOR_VIEW: "vendor:view",
+    VENDOR_CREATE: "vendor:create",
+    VENDOR_UPDATE: "vendor:update",
+    VENDOR_DELETE: "vendor:delete",
+
     PRODUCT_VIEW: "product:view",
     PRODUCT_CREATE: "product:create",
     PRODUCT_UPDATE: "product:update",
