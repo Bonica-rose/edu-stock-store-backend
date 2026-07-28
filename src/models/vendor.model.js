@@ -1,21 +1,19 @@
 const mongoose = require("mongoose");
+const User = require("../models/user.model");
 
 const vendorSchema = new mongoose.Schema(
     {
         vendorCode: {
             type: String,
             required: true,
-            unique: true,
             uppercase: true,
             trim: true,
-            index: true,
         },
 
         vendorName: {
             type: String,
             required: true,
             trim: true,
-            index: true,
         },
 
         contactPerson: {
@@ -82,7 +80,6 @@ const vendorSchema = new mongoose.Schema(
         isActive: {
             type: Boolean,
             default: true,
-            index: true,
         },
 
         createdBy: {
@@ -94,6 +91,7 @@ const vendorSchema = new mongoose.Schema(
         updatedBy: {
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
+            default: null,
         },
     },
     {
@@ -103,7 +101,7 @@ const vendorSchema = new mongoose.Schema(
 
 //Indexes
 vendorSchema.index({ vendorName: 1 });
-vendorSchema.index({ vendorCode: 1 });
+vendorSchema.index({ vendorCode: 1 },{ unique:true });
 vendorSchema.index({ isActive: 1 });
 vendorSchema.index({
     vendorName: "text",
