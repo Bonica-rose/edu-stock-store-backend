@@ -2,12 +2,14 @@ const Category = require("../models/category.model");
 const ApiError = require("../utils/apiError.util");
 const Inventory = require("../models/inventory.model");
 const Asset = require("../models/asset.model");
+const { CATEGORY_TYPES } = require("../constants/category.constants");
 
 const getCategories = async (query) => {
     const {
         page = 1,
         limit = 10,
         search = "",
+        type,
         isActive,
         sortBy = "createdAt",
         sortOrder = "desc",
@@ -21,6 +23,11 @@ const getCategories = async (query) => {
             { categoryName: { $regex: search, $options: "i" } },
             { categoryCode: { $regex: search, $options: "i" } },
         ];
+    }
+
+    // Type Filter
+    if (type) {
+        filter.type = type;
     }
 
     // Status Filter
@@ -70,7 +77,7 @@ const getCategory = async (categoryId) => {
 };
 
 const createCategory = async (categoryData, userId) => {
-    const { categoryName, categoryCode, description } = categoryData;
+    const { categoryName, categoryCode, description, type } = categoryData;
 
     // Check duplicate category name (case-insensitive)
     const existingCategoryName = await Category.findOne({
@@ -92,10 +99,16 @@ const createCategory = async (categoryData, userId) => {
         throw new ApiError(409, "Category code already exists.");
     }
 
+    // Validate category type
+    if (!Object.values(CATEGORY_TYPES).includes(type)) {
+        throw new ApiError(400, "Invalid category type.");
+    }
+
     const category = await Category.create({
         categoryName: categoryName.trim(),
         categoryCode: categoryCode.trim().toUpperCase(),
         description: description?.trim() || "",
+        type,
         createdBy: userId,
     });
 
@@ -111,7 +124,7 @@ const updateCategory = async (categoryId, categoryData) => {
         throw new ApiError(404, "Category not found.");
     }
 
-    const { categoryName, categoryCode, description } = categoryData;
+    const { categoryName, categoryCode, description, type } = categoryData;
 
     // Check duplicate category name
     if (categoryName) {
@@ -144,6 +157,14 @@ const updateCategory = async (categoryId, categoryData) => {
 
         category.categoryCode = code;
     }
+
+    if (type) {
+        if (!Object.values(CATEGORY_TYPES).includes(type)) {
+            throw new ApiError(400, "Invalid category type.");
+        }
+        category.type = type;
+    }
+    
 
     if (description !== undefined) {
         category.description = description.trim();
