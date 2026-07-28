@@ -22,6 +22,12 @@ const Permissions = Object.freeze({
     VENDOR_UPDATE: "vendor:update",
     VENDOR_DELETE: "vendor:delete",
 
+    INVENTORY_VIEW: "inventory.view",
+    INVENTORY_CREATE: "inventory.create",
+    INVENTORY_UPDATE: "inventory.update",
+    INVENTORY_CHANGE_STATUS: "inventory.status:update",
+    INVENTORY_DELETE: "inventory.delete",
+
     PRODUCT_VIEW: "product:view",
     PRODUCT_CREATE: "product:create",
     PRODUCT_UPDATE: "product:update",
