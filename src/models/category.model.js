@@ -1,4 +1,5 @@
 const mongoose = require("mongoose");
+const { CATEGORY_TYPES } = require("../constants/category.constants");
 
 const categorySchema = new mongoose.Schema(
     {
@@ -24,6 +25,13 @@ const categorySchema = new mongoose.Schema(
             default: "",
         },
 
+        type: {
+            type: String,
+            enum: Object.values(CATEGORY_TYPES),
+            default: "Both",
+            required: true,
+        },
+
         isActive: {
             type: Boolean,
             default: true,
@@ -44,6 +52,7 @@ const categorySchema = new mongoose.Schema(
 // Indexes
 categorySchema.index({ categoryName: 1 }, { unique: true });
 categorySchema.index({ categoryCode: 1 }, { unique: true });
+categorySchema.index({ type: 1 });
 categorySchema.index({ isActive: 1 });
 
 // Convert categoryName to title case

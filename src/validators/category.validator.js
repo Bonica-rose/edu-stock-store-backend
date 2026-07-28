@@ -1,4 +1,5 @@
 const { body, param, query } = require("express-validator");
+const { CATEGORY_TYPES } = require("../constants/category.constants");
 
 exports.createCategoryValidator = [
     body("categoryName")
@@ -15,15 +16,19 @@ exports.createCategoryValidator = [
         .isLength({ min: 2, max: 20 })
         .withMessage("Category code must be between 2 and 20 characters.")
         .matches(/^[A-Za-z0-9_-]+$/)
-        .withMessage(
-            "Category code can only contain letters, numbers, hyphens, and underscores."
-        ),
+        .withMessage("Category code can only contain letters, numbers, hyphens, and underscores."),
 
     body("description")
         .optional({ checkFalsy: true })
         .trim()
         .isLength({ max: 500 })
         .withMessage("Description cannot exceed 500 characters."),
+    
+    body("type")
+        .notEmpty()
+        .withMessage("Category type is required.")
+        .isIn(Object.values(CATEGORY_TYPES))
+        .withMessage("Invalid category type."),
 ];
 
 exports.updateCategoryValidator = [
@@ -56,6 +61,13 @@ exports.updateCategoryValidator = [
         .trim()
         .isLength({ max: 500 })
         .withMessage("Description cannot exceed 500 characters."),
+    
+    body("type")
+        .optional()
+        .notEmpty()
+        .withMessage("Category type cannot be empty.")
+        .isIn(Object.values(CATEGORY_TYPES))
+        .withMessage("Invalid category type."),
 ];
 
 exports.categoryIdValidator = [
@@ -92,6 +104,11 @@ exports.getCategoriesValidator = [
         .trim()
         .isLength({ max: 100 })
         .withMessage("Search term cannot exceed 100 characters."),
+    
+    query("type")
+        .optional()
+        .isIn(Object.values(CATEGORY_TYPES))
+        .withMessage("Invalid category type."),
 
     query("isActive")
         .optional()
