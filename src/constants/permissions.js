@@ -22,11 +22,17 @@ const Permissions = Object.freeze({
     VENDOR_UPDATE: "vendor:update",
     VENDOR_DELETE: "vendor:delete",
 
-    INVENTORY_VIEW: "inventory.view",
-    INVENTORY_CREATE: "inventory.create",
-    INVENTORY_UPDATE: "inventory.update",
-    INVENTORY_CHANGE_STATUS: "inventory.status:update",
-    INVENTORY_DELETE: "inventory.delete",
+    INVENTORY_VIEW: "inventory:view",
+    INVENTORY_CREATE: "inventory:create",
+    INVENTORY_UPDATE: "inventory:update",
+    INVENTORY_CHANGE_STATUS: "inventory:status:update",
+    INVENTORY_DELETE: "inventory:delete",
+
+    STOCK_MOVEMENT_VIEW: "stockMovement:view",
+    STOCK_IN_CREATE: "stockMovement:stockIn",
+    STOCK_OUT_CREATE: "stockMovement:stockOut",
+    STOCK_TRANSFER_CREATE: "stockMovement:transfer",
+    STOCK_ADJUSTMENT_CREATE: "stockMovement:adjustment",
 
     PRODUCT_VIEW: "product:view",
     PRODUCT_CREATE: "product:create",
@@ -35,8 +41,6 @@ const Permissions = Object.freeze({
 
     ASSET_VIEW: "asset:view",
     ASSET_ASSIGN: "asset:assign",
-
-
 
     REPORT_VIEW: "report:view",
 
