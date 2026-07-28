@@ -8,6 +8,8 @@ const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const branchRoutes = require("./routes/branch.routes");
 const categoryRoutes = require("./routes/category.routes")
+const inventoryRoutes = require("./routes/inventory.routes")
+const stockMoveRoutes = require("./routes/stockMovement.routes")
 
 // Middlewares
 const { logger } = require("./config/logger.js");
@@ -44,6 +46,8 @@ app.use(`${API_VERSION}/auth`, authRoutes);
 app.use(`${API_VERSION}/users`, userRoutes);
 app.use(`${API_VERSION}/branches`, branchRoutes);
 app.use(`${API_VERSION}/categories`, categoryRoutes);
+app.use(`${API_VERSION}/inventory`, inventoryRoutes);
+app.use(`${API_VERSION}/stock-movements`, stockMoveRoutes);
 
 // 404
 app.use(notFound);
