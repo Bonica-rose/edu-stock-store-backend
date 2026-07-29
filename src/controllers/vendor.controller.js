@@ -35,5 +35,5 @@ exports.changeVendorStatus = asyncHandler(async (req, res) => {
 exports.deleteVendor = asyncHandler(async (req, res) => {
     await vendorService.deleteVendor(req.params.id);
 
-    successResponse(res, 200, "Vendor deleted successfully.");
+    successResponse(res, 200, "Vendor deleted successfully.", null);
 });
