@@ -1,6 +1,5 @@
 const Permissions = Object.freeze({
-    USER_MANAGE: "user:manage",
-    
+    USER_MANAGE: "user:manage",    
     USER_VIEW: "user:view",
     USER_UPDATE: "user:update",
     USER_CREATE: "user:create",
@@ -37,13 +36,13 @@ const Permissions = Object.freeze({
     PURCHASE_VIEW: "purchase:view",
     PURCHASE_CREATE: "purchase:create",
 
-    PRODUCT_VIEW: "product:view",
-    PRODUCT_CREATE: "product:create",
-    PRODUCT_UPDATE: "product:update",
-    PRODUCT_DELETE: "product:delete",
-
     ASSET_VIEW: "asset:view",
+    ASSET_CREATE: "asset:create",
+    ASSET_UPDATE: "asset:update",
+    ASSET_CHANGE_STATUS: "asset:status:update",
+    ASSET_DELETE: "asset:delete",
     ASSET_ASSIGN: "asset:assign",
+    ASSET_RETURN: "asset:return",
 
     REPORT_VIEW: "report:view",
 
