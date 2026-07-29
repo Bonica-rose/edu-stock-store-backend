@@ -33,7 +33,6 @@ const purchaseSchema = new mongoose.Schema(
     {
         purchaseNo: {
             type: String,
-            unique: true,
             trim: true,
         },
 
@@ -92,7 +91,7 @@ const purchaseSchema = new mongoose.Schema(
 );
 
 // Indexes
-purchaseSchema.index({ purchaseNo: 1 });
+purchaseSchema.index({ purchaseNo: 1 },{ unique: true });
 purchaseSchema.index({ vendor: 1 });
 purchaseSchema.index({ branch: 1 });
 purchaseSchema.index({ purchaseDate: -1 });

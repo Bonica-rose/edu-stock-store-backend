@@ -10,6 +10,8 @@ const branchRoutes = require("./routes/branch.routes");
 const categoryRoutes = require("./routes/category.routes")
 const inventoryRoutes = require("./routes/inventory.routes")
 const stockMoveRoutes = require("./routes/stockMovement.routes")
+const purchaseRoutes = require("./routes/purchase.routes");
+const assetRoutes = require("./routes/asset.routes");
 
 // Middlewares
 const { logger } = require("./config/logger.js");
@@ -48,6 +50,8 @@ app.use(`${API_VERSION}/branches`, branchRoutes);
 app.use(`${API_VERSION}/categories`, categoryRoutes);
 app.use(`${API_VERSION}/inventory`, inventoryRoutes);
 app.use(`${API_VERSION}/stock-movements`, stockMoveRoutes);
+app.use(`${API_VERSION}/purchases`, purchaseRoutes);
+app.use(`${API_VERSION}/assets`, assetRoutes);
 
 // 404
 app.use(notFound);
