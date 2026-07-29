@@ -9,12 +9,14 @@ const { ROLES } = require("../constants/roles");
 
 
 // Stock In
-const stockIn = async (movementData, user) => {
+const stockIn = async (movementData, user, session = null) => {
 
-    const session = await mongoose.startSession();
-    try {
+    const ownSession = !session;
+    if (ownSession) {
+        session = await mongoose.startSession();
         session.startTransaction();
-
+    }
+    try {
         const inventory = await Inventory.findOne({
             _id: movementData.inventory,
             isDeleted: false,
@@ -51,24 +53,32 @@ const stockIn = async (movementData, user) => {
             performedBy: user._id,
         }],{ session });
 
-        await session.commitTransaction();
+        if (ownSession) {
+            await session.commitTransaction();
+        }
         return movement[0];
 
     } catch (error) {
-        await session.abortTransaction();
+        if (ownSession) {
+            await session.abortTransaction();
+        }
         throw error;
     } finally {
-        session.endSession();
+        if (ownSession) {
+            await session.endSession();
+        }
     }
 };
 
 // Stock Out
-const stockOut = async (movementData, user) => {
+const stockOut = async (movementData, user, session = null) => {
 
-    const session = await mongoose.startSession();
-    try {
+    const ownSession = !session;
+    if (ownSession) {
+        session = await mongoose.startSession();
         session.startTransaction();
-
+    }
+    try {
         const inventory = await Inventory.findOne({
             _id: movementData.inventory,
             isDeleted: false,
@@ -108,24 +118,32 @@ const stockOut = async (movementData, user) => {
             performedBy: user._id,
         }],{ session });
 
-        await session.commitTransaction();
+        if (ownSession) {
+            await session.commitTransaction();
+        }
         return movement[0];
 
     } catch(error){
-        await session.abortTransaction();
+        if (ownSession) {
+            await session.abortTransaction();
+        }
         throw error;
     } finally {
-        session.endSession();
+        if (ownSession) {
+            await session.endSession();
+        }
     }
 };
 
 // Transfer Stock
-const transferStock = async (movementData, user) => {
+const transferStock = async (movementData, user, session = null) => {
 
-    const session = await mongoose.startSession();
-    try {
+    const ownSession = !session;
+    if (ownSession) {
+        session = await mongoose.startSession();
         session.startTransaction();
-
+    }
+    try {
         const sourceInventory =
             await Inventory.findOne({
                 _id: movementData.inventory,
@@ -192,24 +210,32 @@ const transferStock = async (movementData, user) => {
             performedBy: user._id,
         }],{session });
 
-        await session.commitTransaction();
+        if (ownSession) {
+            await session.commitTransaction();
+        }
         return true;
 
     } catch(error){
-        await session.abortTransaction();
+        if (ownSession) {
+            await session.abortTransaction();
+        }
         throw error;
     } finally {
-        session.endSession();
+        if (ownSession) {
+            await session.endSession();
+        }
     }
 };
 
 // Stock Adjustment
-const adjustStock = async (movementData, user) => {
+const adjustStock = async (movementData, user, session = null) => {
 
-    const session = await mongoose.startSession();
-    try {
+    const ownSession = !session;
+    if (ownSession) {
+        session = await mongoose.startSession();
         session.startTransaction();
-
+    }
+    try {
         const inventory =
             await Inventory.findOne({
                 _id: movementData.inventory,
@@ -244,14 +270,20 @@ const adjustStock = async (movementData, user) => {
                 performedBy: user._id,
             }],{ session });
 
-        await session.commitTransaction();
+        if (ownSession) {
+            await session.commitTransaction();
+        }
         return movement[0];
 
     } catch(error){
-        await session.abortTransaction();
+        if (ownSession) {
+            await session.abortTransaction();
+        }
         throw error;
     } finally {
-        session.endSession();
+        if (ownSession) {
+            await session.endSession();
+        }
     }
 };
 
