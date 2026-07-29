@@ -4,14 +4,12 @@ const Branch = require("../models/branch.model");
 const ApiError = require("../utils/apiError.util");
 const { hashPassword } = require("./auth.service");
 const generateEmployeeId = require("../utils/generateEmployeeId.util");
-const {
-    ROLES,
-    BRANCH_ADMIN_ALLOWED_USER_ROLES
-} = require("../constants/roles");
-
+const { ROLES, BRANCH_ADMIN_ALLOWED_USER_ROLES } = require("../constants/roles");
+const { logActivity } = require("./activity.service");
+const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
 const { mapUser, mapUsers } = require("../utils/userResponse.util");
 
-exports.createUser = async (userData, loggedInUser) => {
+exports.createUser = async (userData, loggedInUser, requestInfo) => {
     const { firstName, lastName, email, password, phone, role, branch, profileImage} = userData;
 
     // Validate role
@@ -120,6 +118,16 @@ exports.createUser = async (userData, loggedInUser) => {
     await user.populate("branch", "branchCode branchName")
         .populate("createdBy", "employeeId firstName lastName")
         .populate("updatedBy", "employeeId firstName lastName");
+
+    await logActivity({
+        user: loggedInUser._id,
+        module: ACTIVITY_MODULES.USER,
+        action: ACTIVITY_ACTIONS.CREATE,
+        recordId: user._id,
+        recordCode: user.employeeId,
+        description: `Created user ${user.firstName} ${user.lastName}.`,
+        ...requestInfo,
+    });
 
     return mapUser(user);
 };
@@ -250,7 +258,7 @@ exports.getUserById = async (userId, loggedInUser) => {
     return mapUser(user);
 };
 
-exports.updateUser = async (userId, userData, loggedInUser) => {
+exports.updateUser = async (userId, userData, loggedInUser, requestInfo) => {
 
     /* To update user, it may contain only firstName, lastName, email, password, 
      phone, role, branch, profileImage, isActive */
@@ -396,6 +404,16 @@ exports.updateUser = async (userId, userData, loggedInUser) => {
         await user.populate("createdBy", "employeeId firstName lastName");
         await user.populate("updatedBy", "employeeId firstName lastName");
 
+        await logActivity({
+            user: loggedInUser._id,
+            module: ACTIVITY_MODULES.USER,
+            action: ACTIVITY_ACTIONS.UPDATE,
+            recordId: user._id,
+            recordCode: user.employeeId,
+            description: `Updated user ${user.firstName} ${user.lastName}.`,
+            ...requestInfo,
+        });
+
         return mapUser(user);
                 
     } catch (error) {
@@ -448,7 +466,7 @@ exports.updateOwnProfile = async (userId, profileData) => {
     return mapUser(user);
 };
 
-exports.changeUserStatus = async (userId, isActive, loggedInUser) => {
+exports.changeUserStatus = async (userId, isActive, loggedInUser, requestInfo) => {
 
     const session = await mongoose.startSession();
     try {
@@ -519,6 +537,21 @@ exports.changeUserStatus = async (userId, isActive, loggedInUser) => {
             .populate("branch", "branchCode branchName")
             .populate("createdBy", "employeeId firstName lastName")
             .populate("updatedBy", "employeeId firstName lastName");
+        
+        await logActivity({
+            user: loggedInUser._id,
+            module: ACTIVITY_MODULES.USER,
+            action: ACTIVITY_ACTIONS.STATUS_CHANGE,
+            recordId: user._id,
+            recordCode: user.employeeId,
+            description: `${user.firstName} ${user.lastName} was ${
+                user.isActive ? "activated" : "deactivated"
+            }.`,
+            metadata: {
+                isActive: user.isActive,
+            },
+            ...requestInfo,
+        });
 
         return mapUser(user);
 
@@ -530,7 +563,7 @@ exports.changeUserStatus = async (userId, isActive, loggedInUser) => {
     }
 };
 
-exports.deleteUser = async (userId, loggedInUser) => {
+exports.deleteUser = async (userId, loggedInUser, requestInfo) => {
 
     const user = await User.findOne({_id: userId,deletedAt: null });
     if (!user) {
@@ -550,6 +583,16 @@ exports.deleteUser = async (userId, loggedInUser) => {
     user.isActive = false;
     user.updatedBy = loggedInUser._id;
     await user.save();
+
+    await logActivity({
+        user: loggedInUser._id,
+        module: ACTIVITY_MODULES.USER,
+        action: ACTIVITY_ACTIONS.DELETE,
+        recordId: user._id,
+        recordCode: user.employeeId,
+        description: `Deleted user ${user.firstName} ${user.lastName}.`,
+        ...requestInfo,
+    });
 
     return;
 };

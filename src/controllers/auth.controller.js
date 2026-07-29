@@ -4,7 +4,7 @@ const { successResponse } = require("../utils/apiResponse.util");
 
 exports.login = asyncHandler(async (req, res) => {
 
-    const { token, user } = await authService.login(req.body);
+    const { token, user } = await authService.login(req.body, req.requestInfo);
 
     res.cookie(
         "accessToken",
@@ -17,7 +17,7 @@ exports.login = asyncHandler(async (req, res) => {
 
 exports.logout = asyncHandler(async (req, res) => {   
 
-    await authService.logout();
+    await authService.logout(req.user, req.requestInfo);
 
     res.clearCookie("accessToken", authService.getCookieOptions());
 
@@ -36,7 +36,8 @@ exports.changePassword = asyncHandler(async (req, res) => {
     await authService.changePassword(
         req.user._id,
         req.body.currentPassword,
-        req.body.newPassword
+        req.body.newPassword,
+        req.requestInfo
     );
 
     successResponse(res, 200, "Password changed successfully");

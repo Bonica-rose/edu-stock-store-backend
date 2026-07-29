@@ -4,7 +4,7 @@ const { successResponse } = require("../utils/apiResponse.util");
 
 exports.createUser = asyncHandler(async (req, res) => {
 
-    const user = await userService.createUser(req.body, req.user);
+    const user = await userService.createUser(req.body, req.user, req.requestInfo);
 
     successResponse(res, 201, "User created successfully", user);
 });
@@ -25,7 +25,7 @@ exports.getUserById = asyncHandler(async (req, res) => {
 
 exports.updateUser = asyncHandler(async (req, res) => {
 
-    const user = await userService.updateUser(req.params.id, req.body, req.user);
+    const user = await userService.updateUser(req.params.id, req.body, req.user, req.requestInfo);
 
     successResponse(res, 200, "User updated successfully", user);
 });
@@ -39,14 +39,14 @@ exports.updateOwnProfile = asyncHandler(async (req, res) => {
 
 exports.changeUserStatus = asyncHandler(async (req, res) => {
 
-    const user = await userService.changeUserStatus(req.params.id, req.body.isActive, req.user);
+    const user = await userService.changeUserStatus(req.params.id, req.body.isActive, req.user, req.requestInfo);
 
     successResponse(res, 200, "User status updated successfully", user);
 });
 
 exports.deleteUser = asyncHandler(async (req, res) => {
 
-    await userService.deleteUser(req.params.id, req.user);
+    await userService.deleteUser(req.params.id, req.user, req.requestInfo);
 
     successResponse(res, 200, "User deleted successfully", user);
 });

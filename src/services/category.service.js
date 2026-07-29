@@ -3,6 +3,8 @@ const ApiError = require("../utils/apiError.util");
 const Inventory = require("../models/inventory.model");
 const Asset = require("../models/asset.model");
 const { CATEGORY_TYPES } = require("../constants/category.constants");
+const { logActivity } = require("./activity.service");
+const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
 
 const getCategories = async (query) => {
     const {
@@ -78,7 +80,7 @@ const getCategory = async (categoryId) => {
     return category;
 };
 
-const createCategory = async (categoryData, userId) => {
+const createCategory = async (categoryData, userId, requestInfo) => {
     const { categoryName, categoryCode, description, type } = categoryData;
 
     // Check duplicate category name (case-insensitive)
@@ -114,12 +116,22 @@ const createCategory = async (categoryData, userId) => {
         createdBy: userId,
     });
 
+    await logActivity({
+        user: userId,
+        module: ACTIVITY_MODULES.CATEGORY,
+        action: ACTIVITY_ACTIONS.CREATE,
+        recordId: category._id,
+        recordCode: category.categoryCode || category.categoryName,
+        description: `Created category ${category.categoryName}.`,
+        ...requestInfo,
+    });
+
     return await Category.findById(category._id)
         .populate("createdBy", "employeeId firstName lastName email")
         .lean();
 };
 
-const updateCategory = async (categoryId, categoryData) => {
+const updateCategory = async (categoryId, categoryData, userId, requestInfo) => {
     const category = await Category.findById(categoryId);
 
     if (!category) {
@@ -174,13 +186,23 @@ const updateCategory = async (categoryId, categoryData) => {
 
     await category.save();
 
+    await logActivity({
+        user: userId,
+        module: ACTIVITY_MODULES.CATEGORY,
+        action: ACTIVITY_ACTIONS.UPDATE,
+        recordId: category._id,
+        recordCode: category.categoryCode || category.categoryName,
+        description: `Updated category ${category.categoryName}.`,
+        ...requestInfo,
+    });
+
     return await Category.findById(category._id)
         .populate("createdBy", "employeeId firstName lastName email")
         .populate("updatedBy", "employeeId firstName lastName email")
         .lean();
 };
 
-const changeCategoryStatus = async (categoryId, userId) => {
+const changeCategoryStatus = async (categoryId, userId, requestInfo) => {
     
     const category = await Category.findById(categoryId);
     if (!category) {
@@ -192,13 +214,28 @@ const changeCategoryStatus = async (categoryId, userId) => {
     category.updatedBy = userId;
     await category.save();
 
+    await logActivity({
+        user: userId,
+        module: ACTIVITY_MODULES.CATEGORY,
+        action: ACTIVITY_ACTIONS.STATUS_CHANGE,
+        recordId: category._id,
+        recordCode: category.categoryCode || category.categoryName,
+        description: `${category.categoryName} category was ${
+            category.isActive ? "activated" : "deactivated"
+        }.`,
+        metadata: {
+            isActive: category.isActive,
+        },
+        ...requestInfo,
+    });
+
     return await Category.findById(category._id)
         .populate("createdBy", "employeeId firstName lastName email")
         .populate("updatedBy", "employeeId firstName lastName email")
         .lean();
 };
 
-const deleteCategory = async (categoryId) => {
+const deleteCategory = async (categoryId, userId, requestInfo) => {
     
     const category = await Category.findById(categoryId);
     if (!category) {
@@ -218,6 +255,17 @@ const deleteCategory = async (categoryId) => {
     }
 
     await category.deleteOne();
+
+    await logActivity({
+        user: userId,
+        module: ACTIVITY_MODULES.CATEGORY,
+        action: ACTIVITY_ACTIONS.DELETE,
+        recordId: category._id,
+        recordCode: category.categoryCode || category.categoryName,
+        description: `Deleted category ${category.categoryName}.`,
+        ...requestInfo,
+    });
+
     return;
 };
 

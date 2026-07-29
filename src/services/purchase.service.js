@@ -4,16 +4,14 @@ const Purchase = require("../models/purchase.model");
 const Vendor = require("../models/vendor.model");
 const Branch = require("../models/branch.model");
 const Inventory = require("../models/inventory.model");
-
 const stockMovementService = require("./stockMovement.service");
-
 const ApiError = require("../utils/apiError.util");
 const { ROLES } = require("../constants/roles");
-const {
-    STOCK_MOVEMENT_REASONS,
-} = require("../constants/stockMovement.constants");
+const { STOCK_MOVEMENT_REASONS } = require("../constants/stockMovement.constants");
+const { logActivity } = require("./activity.service");
+const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
 
-const createPurchase = async (purchaseData, user) => {
+const createPurchase = async (purchaseData, user, requestInfo) => {
 
     let session;
     try {
@@ -107,6 +105,20 @@ const createPurchase = async (purchaseData, user) => {
                 session
             );
         }
+
+        // Log activity
+        await logActivity(
+            {
+                user: user._id,
+                module: ACTIVITY_MODULES.PURCHASE,
+                action: ACTIVITY_ACTIONS.CREATE,
+                recordId: purchase[0]._id,
+                recordCode: purchase[0].purchaseNo,
+                description: `Created purchase ${purchase[0].purchaseNo}.`,
+                ...requestInfo,
+            },
+            session
+        );
 
         await session.commitTransaction();
 

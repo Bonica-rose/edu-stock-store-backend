@@ -19,6 +19,7 @@ const { logger } = require("./config/logger.js");
 const notFound = require("./middleware/notFound.middleware");
 const errorHandler = require("./middleware/error.middleware");
 const { API_VERSION } = require("./constants/api");
+const requestInfo = require("./middlewares/requestInfo.middleware");
 
 const app = express();
 
@@ -43,6 +44,9 @@ app.use(express.urlencoded({ extended: true }));
 
 // Logger
 app.use(logger);
+
+// Attach request information
+app.use(requestInfo);
 
 // Routes 
 app.use(`${API_VERSION}/auth`, authRoutes);
