@@ -12,6 +12,7 @@ const inventoryRoutes = require("./routes/inventory.routes")
 const stockMoveRoutes = require("./routes/stockMovement.routes")
 const purchaseRoutes = require("./routes/purchase.routes");
 const assetRoutes = require("./routes/asset.routes");
+const maintenanceRoutes = require("./routes/maintenance.routes.js");
 
 // Middlewares
 const { logger } = require("./config/logger.js");
@@ -52,6 +53,7 @@ app.use(`${API_VERSION}/inventory`, inventoryRoutes);
 app.use(`${API_VERSION}/stock-movements`, stockMoveRoutes);
 app.use(`${API_VERSION}/purchases`, purchaseRoutes);
 app.use(`${API_VERSION}/assets`, assetRoutes);
+app.use(`${API_VERSION}/maintenance`, maintenanceRoutes);
 
 // 404
 app.use(notFound);

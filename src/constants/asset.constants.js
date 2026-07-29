@@ -5,6 +5,14 @@ const ASSET_STATUS = Object.freeze({
     RETIRED: "Retired",
 });
 
+const ASSET_CONDITION = Object.freeze({
+    GOOD: "Good",
+    DAMAGED: "Damaged",
+    UNDER_MAINTENANCE: "Under Maintenance",
+    RETIRED: "Retired",
+});
+
 module.exports = {
-    ASSET_STATUS
+    ASSET_STATUS,
+    ASSET_CONDITION
 }

@@ -44,6 +44,13 @@ const Permissions = Object.freeze({
     ASSET_ASSIGN: "asset:assign",
     ASSET_RETURN: "asset:return",
 
+    MAINTENANCE_VIEW: "maintenance:view",
+    MAINTENANCE_CREATE: "maintenance:create",
+    MAINTENANCE_ASSIGN: "maintenance:assign",
+    MAINTENANCE_UPDATE_STATUS: "maintenance:update:status",
+    MAINTENANCE_COMPLETE: "maintenance:complete",
+    MAINTENANCE_DELETE: "maintenance:delete",
+
     REPORT_VIEW: "report:view",
 
     SETTINGS_MANAGE: "settings:manage",

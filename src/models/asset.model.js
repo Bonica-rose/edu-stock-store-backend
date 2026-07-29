@@ -1,8 +1,9 @@
 const mongoose = require("mongoose");
-const { ASSET_STATUS } = require("../constants/asset.constants");
-const User = require("../models/user.model");
-const Branch = require("../models/branch.model");
-const Inventory = require("../models/inventory.model");
+const { ASSET_STATUS, ASSET_CONDITION } = require("../constants/asset.constants");
+// const User = require("../models/user.model");
+// const Branch = require("../models/branch.model");
+// const Inventory = require("../models/inventory.model");
+// const Maintenance = require("../models/maintenance.model");
 
 const assignmentHistorySchema = new mongoose.Schema(
     {
@@ -78,6 +79,12 @@ const assetSchema = new mongoose.Schema(
             required: true,
         },
 
+        condition: {
+            type: String,
+            enum: Object.values(ASSET_CONDITION),
+            default: ASSET_CONDITION.GOOD,
+        },
+
         // For current assignment
         assignedTo: {
             type: mongoose.Schema.Types.ObjectId,
@@ -94,6 +101,21 @@ const assetSchema = new mongoose.Schema(
             type: [assignmentHistorySchema],
             default: [],
         },
+
+        maintenanceHistory: [
+            {
+                maintenance: {
+                    type: mongoose.Schema.Types.ObjectId,
+                    ref: "Maintenance",
+                    required: true,
+                },
+
+                createdAt: {
+                    type: Date,
+                    default: Date.now,
+                },
+            },
+        ],
 
         // For current asset status
         status: {
@@ -146,5 +168,6 @@ assetSchema.index({ inventory: 1 });
 assetSchema.index({ branch: 1 });
 assetSchema.index({ assignedTo: 1 });
 assetSchema.index({ status: 1 });
+assetSchema.index({ condition: 1 });
 
 module.exports = mongoose.model("Asset", assetSchema);
