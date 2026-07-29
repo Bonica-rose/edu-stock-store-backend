@@ -34,6 +34,9 @@ const Permissions = Object.freeze({
     STOCK_TRANSFER_CREATE: "stockMovement:transfer",
     STOCK_ADJUSTMENT_CREATE: "stockMovement:adjustment",
 
+    PURCHASE_VIEW: "purchase:view",
+    PURCHASE_CREATE: "purchase:create",
+
     PRODUCT_VIEW: "product:view",
     PRODUCT_CREATE: "product:create",
     PRODUCT_UPDATE: "product:update",
