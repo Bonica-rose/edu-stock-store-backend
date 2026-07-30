@@ -29,6 +29,7 @@ const ACTIVITY_ACTIONS = Object.freeze({
 
     STOCK_IN: "Stock In",
     STOCK_OUT: "Stock Out",
+    STOCK_TRANSFER: "Stock Transfer",
     STOCK_ADJUSTMENT: "Stock Adjustment",
 
     START_MAINTENANCE: "Start Maintenance",

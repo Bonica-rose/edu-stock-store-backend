@@ -18,8 +18,8 @@ const maintenanceRoutes = require("./routes/maintenance.routes.js");
 const { logger } = require("./config/logger.js");
 const notFound = require("./middleware/notFound.middleware");
 const errorHandler = require("./middleware/error.middleware");
+const requestInfo = require("./middleware/requestInfo.middleware");
 const { API_VERSION } = require("./constants/api");
-const requestInfo = require("./middlewares/requestInfo.middleware");
 
 const app = express();
 

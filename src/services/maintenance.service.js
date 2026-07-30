@@ -4,6 +4,8 @@ const ApiError = require("../utils/apiError.util");
 const { ASSET_CONDITION, } = require("../constants/asset.constants");
 const { MAINTENANCE_STATUS, } = require("../constants/maintenance.constants");
 const { ROLES } = require("../constants/roles");
+const { logActivity } = require("./activity.service");
+const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
 
 const generateMaintenanceId = async () => {
     const lastMaintenance = await Maintenance.findOne()
@@ -159,7 +161,7 @@ const getMaintenance = async (id) => {
     return maintenance;
 };
 
-const createMaintenance = async (maintenanceData, userId) => {
+const createMaintenance = async (maintenanceData, userId, requestInfo) => {
     // Check asset exists
     const asset = await Asset.findOne({_id: maintenanceData.asset, isDeleted: false });
     if (!asset) {
@@ -211,6 +213,16 @@ const createMaintenance = async (maintenanceData, userId) => {
 
     await asset.save();
 
+    await logActivity({
+        user: userId,
+        module: ACTIVITY_MODULES.MAINTENANCE,
+        action: ACTIVITY_ACTIONS.CREATE,
+        recordId: maintenance._id,
+        recordCode: maintenance.maintenanceId,
+        description: `Created maintenance request ${maintenance.maintenanceId}.`,
+        ...requestInfo,
+    });
+
     return await Maintenance.findById(maintenance._id)
         .populate({
             path: "asset",
@@ -219,7 +231,7 @@ const createMaintenance = async (maintenanceData, userId) => {
         .populate("reportedBy", "firstName lastName email");
 };
 
-const assignMaintenance = async (id, assignData, userId) => {
+const assignMaintenance = async (id, assignData, userId, requestInfo) => {
     // Find maintenance
     const maintenance = await Maintenance.findOne({ _id: id, isDeleted: false });
     if (!maintenance) {
@@ -250,6 +262,22 @@ const assignMaintenance = async (id, assignData, userId) => {
 
     await maintenance.save();
 
+    await logActivity({
+        user: userId,
+        module: ACTIVITY_MODULES.MAINTENANCE,
+        action: ACTIVITY_ACTIONS.ASSIGN,
+        recordId: maintenance._id,
+        recordCode: maintenance.maintenanceId,
+        description:
+            `Assigned maintenance ${maintenance.maintenanceId} to ${assignedUser.firstName} ${assignedUser.lastName}.`,
+        metadata: {
+            assignedTo: assignedUser._id,
+            assignedEmployeeId: assignedUser.employeeId,
+            assignedDate: maintenance.assignedDate,
+        },
+        ...requestInfo,
+    });   
+
     return await Maintenance.findById(maintenance._id)
         .populate({
             path: "asset",
@@ -260,7 +288,7 @@ const assignMaintenance = async (id, assignData, userId) => {
         .populate("assignedTo", "firstName lastName email");
 };
 
-const updateMaintenanceStatus = async (id, statusData) => {
+const updateMaintenanceStatus = async (id, statusData, userId, requestinfo) => {
     const { status } = statusData;
 
     // Find maintenance
@@ -305,6 +333,20 @@ const updateMaintenanceStatus = async (id, statusData) => {
 
     await maintenance.save();
 
+    await logActivity({
+        user: userId,
+        module: ACTIVITY_MODULES.MAINTENANCE,
+        action: ACTIVITY_ACTIONS.STATUS_CHANGE,
+        recordId: maintenance._id,
+        recordCode: maintenance.maintenanceId,
+        description: `Changed maintenance ${maintenance.maintenanceId} status to ${maintenance.status}.`,
+        metadata: {
+            previousStatus: currentStatus,
+            currentStatus: maintenance.status,
+        },
+        ...requestInfo,
+    });
+
     return await Maintenance.findById(maintenance._id)
         .populate({
             path: "asset",
@@ -316,9 +358,10 @@ const updateMaintenanceStatus = async (id, statusData) => {
         .populate("vendor", "vendorName");
 };
 
-const completeMaintenance = async (id, completeData) => {
+const completeMaintenance = async (id, completeData, userId, requestinfo) => {
     // Find maintenance
-    const maintenance = await Maintenance.findOne({ _id: id,  isDeleted: false });
+    const maintenance = await Maintenance.findOne({ _id: id, isDeleted: false })
+        .populate("vendor", "vendorName");;
     if (!maintenance) {
         throw new ApiError(404, "Maintenance record not found.");
     }
@@ -344,6 +387,21 @@ const completeMaintenance = async (id, completeData) => {
         condition: completeData.assetCondition,
     });
 
+    await logActivity({
+        user: userId,
+        module: ACTIVITY_MODULES.MAINTENANCE,
+        action: ACTIVITY_ACTIONS.COMPLETE_MAINTENANCE,
+        recordId: maintenance._id,
+        recordCode: maintenance.maintenanceId,
+        description: `Completed maintenance ${maintenance.maintenanceId}.`,
+        metadata: {
+            repairCost: maintenance.repairCost,
+            vendor: maintenance.vendor.vendorName,
+            completedDate: maintenance.completedDate,
+        },
+        ...requestInfo,
+    });
+
     return await Maintenance.findById(maintenance._id)
         .populate({
             path: "asset",
@@ -355,7 +413,7 @@ const completeMaintenance = async (id, completeData) => {
         .populate("vendor", "vendorName");
 };
 
-const deleteMaintenance = async (id) => {
+const deleteMaintenance = async (id, userId, requestinfo) => {
     // Find maintenance
     const maintenance = await Maintenance.findOne({ _id: id,  isDeleted: false });
     if (!maintenance) {
@@ -370,6 +428,16 @@ const deleteMaintenance = async (id) => {
     // Soft delete
     maintenance.isDeleted = true;
     await maintenance.save();
+
+    await logActivity({
+        user: userId,
+        module: ACTIVITY_MODULES.MAINTENANCE,
+        action: ACTIVITY_ACTIONS.DELETE,
+        recordId: maintenance._id,
+        recordCode: maintenance.maintenanceId,
+        description: `Deleted maintenance ${maintenance.maintenanceId}.`,
+        ...requestInfo,
+    });
 
     return;
 };

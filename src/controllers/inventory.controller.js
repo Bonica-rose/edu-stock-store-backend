@@ -17,28 +17,28 @@ exports.getInventory = asyncHandler(async (req, res) => {
 
 exports.createInventory = asyncHandler(async (req, res) => {
 
-    const inventory = await inventoryService.createInventory(req.body, req.user);
+    const inventory = await inventoryService.createInventory(req.body, req.user, req.requestInfo);
 
     successResponse(res, 200, "Inventory created successfully", inventory);
 });
 
 exports.updateInventory = asyncHandler(async (req, res) => {
 
-    const inventory = await inventoryService.updateInventory(req.params.id, req.body, req.user );
+    const inventory = await inventoryService.updateInventory(req.params.id, req.body, req.user, req.requestInfo);
 
     successResponse(res, 200, "Inventory updated successfully", inventory);
 });
 
 exports.changeInventoryStatus = asyncHandler(async (req, res) => {
 
-    const inventory = await inventoryService.changeInventoryStatus(req.params.id, req.user);
+    const inventory = await inventoryService.changeInventoryStatus(req.params.id, req.user, req.requestInfo);
 
     successResponse(res, 200, `Inventory ${inventory.isActive ? "activated" : "deactivated"} successfully.`, inventory);
 });
 
 exports.deleteInventory = asyncHandler(async (req, res) => {
 
-    await inventoryService.deleteInventory(req.params.id, req.user);
+    await inventoryService.deleteInventory(req.params.id, req.user, req.requestInfo);
 
     successResponse(res, 200, "Inventory deleted successfully", null);
 });

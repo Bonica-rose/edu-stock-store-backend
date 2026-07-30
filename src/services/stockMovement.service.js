@@ -1,15 +1,15 @@
 const mongoose = require("mongoose");
-
 const Inventory = require("../models/inventory.model");
 const StockMovement = require("../models/stockMovement.model");
 const Branch = require("../models/branch.model");
-
 const ApiError = require("../utils/apiError.util");
 const { ROLES } = require("../constants/roles");
+const { logActivity } = require("./activity.service");
+const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
 
 
 // Stock In
-const stockIn = async (movementData, user, session = null) => {
+const stockIn = async (movementData, user, requestInfo, session = null) => {
 
     const ownSession = !session;
     if (ownSession) {
@@ -51,7 +51,27 @@ const stockIn = async (movementData, user, session = null) => {
             reason: movementData.reason,
             remarks: movementData.remarks,
             performedBy: user._id,
-        }],{ session });
+        }], { session });
+        
+        await logActivity(
+            {
+                user: user._id,
+                module: ACTIVITY_MODULES.INVENTORY,
+                action: ACTIVITY_ACTIONS.STOCK_IN,
+                recordId: inventory._id,
+                recordCode: inventory.sku,
+                description: `Added ${movement.quantity} units to inventory ${inventory.sku}.`,
+                metadata: {
+                    stockMovementId: movement[0]._id,
+                    quantity: movement.quantity,
+                    previousStock,
+                    newStock,
+                    reason: movement.reason,
+                },
+                ...requestInfo,
+            },
+            session
+        );
 
         if (ownSession) {
             await session.commitTransaction();
@@ -71,7 +91,7 @@ const stockIn = async (movementData, user, session = null) => {
 };
 
 // Stock Out
-const stockOut = async (movementData, user, session = null) => {
+const stockOut = async (movementData, user, requestInfo, session = null) => {
 
     const ownSession = !session;
     if (ownSession) {
@@ -116,7 +136,27 @@ const stockOut = async (movementData, user, session = null) => {
             reason: movementData.reason,
             remarks: movementData.remarks,
             performedBy: user._id,
-        }],{ session });
+        }], { session });
+        
+        await logActivity(
+            {
+                user: user._id,
+                module: ACTIVITY_MODULES.INVENTORY,
+                action: ACTIVITY_ACTIONS.STOCK_OUT,
+                recordId: inventory._id,
+                recordCode: inventory.sku,
+                description: `Removed ${movement.quantity} units from inventory ${inventory.sku}.`,
+                metadata: {
+                    stockMovementId: movement[0]._id,
+                    quantity: movement.quantity,
+                    previousStock,
+                    newStock,
+                    reason: movement.reason,
+                },
+                ...requestInfo,
+            },
+            session
+        );
 
         if (ownSession) {
             await session.commitTransaction();
@@ -136,7 +176,7 @@ const stockOut = async (movementData, user, session = null) => {
 };
 
 // Transfer Stock
-const transferStock = async (movementData, user, session = null) => {
+const transferStock = async (movementData, user, requestInfo, session = null) => {
 
     const ownSession = !session;
     if (ownSession) {
@@ -210,6 +250,26 @@ const transferStock = async (movementData, user, session = null) => {
             performedBy: user._id,
         }],{session });
 
+        await logActivity(
+            {
+                user: user._id,
+                module: ACTIVITY_MODULES.INVENTORY,
+                action: ACTIVITY_ACTIONS.STOCK_TRANSFER,
+                recordId: sourceInventory._id,
+                recordCode: sourceInventory.sku,
+                description:
+                    `Transferred ${quantity} units from ${sourceInventory.sku} to ${destinationInventory.sku}.`,
+                metadata: {
+                    sourceInventory: sourceInventory.sku,
+                    destinationInventory: destinationInventory.sku,
+                    quantity,
+                    stockMovementId: movement[0]._id,
+                },
+                ...requestInfo,
+            },
+            session
+        );
+
         if (ownSession) {
             await session.commitTransaction();
         }
@@ -228,7 +288,7 @@ const transferStock = async (movementData, user, session = null) => {
 };
 
 // Stock Adjustment
-const adjustStock = async (movementData, user, session = null) => {
+const adjustStock = async (movementData, user, requestInfo, session = null) => {
 
     const ownSession = !session;
     if (ownSession) {
@@ -268,7 +328,27 @@ const adjustStock = async (movementData, user, session = null) => {
                 reason: movementData.reason,
                 remarks: movementData.remarks,
                 performedBy: user._id,
-            }],{ session });
+            }], { session });
+        
+        await logActivity(
+            {
+                user: user._id,
+                module: ACTIVITY_MODULES.INVENTORY,
+                action: ACTIVITY_ACTIONS.STOCK_ADJUSTMENT,
+                recordId: inventory._id,
+                recordCode: inventory.sku,
+                description: `Adjusted inventory ${inventory.sku}.`,
+                metadata: {
+                    stockMovementId: movement[0]._id,
+                    previousStock,
+                    newStock,
+                    adjustment: newStock - previousStock,
+                    reason: movement.reason,
+                },
+                ...requestInfo,
+            },
+            session
+        );
 
         if (ownSession) {
             await session.commitTransaction();

@@ -56,7 +56,6 @@ const assetSchema = new mongoose.Schema(
         assetCode: {
             type: String,
             required: true,
-            unique: true,
             trim: true,
         },
 

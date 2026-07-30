@@ -1,9 +1,12 @@
 const Inventory = require("../models/inventory.model");
+const StockMovement = require("../models/stockMovement.model");
 const Category = require("../models/category.model");
 const Vendor = require("../models/vendor.model");
 const Branch = require("../models/branch.model");
 const ApiError = require("../utils/apiError.util");
 const { ROLES } = require("../constants/roles");
+const { logActivity } = require("./activity.service");
+const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
 
 const getInventories = async (query, user) => {
     const {
@@ -114,7 +117,7 @@ const getInventory = async (inventoryId, user) => {
     return inventory;
 };
 
-const createInventory = async (inventoryData, user) => {
+const createInventory = async (inventoryData, user, requestInfo) => {
     const {
         itemName,
         barcode,
@@ -190,10 +193,8 @@ const createInventory = async (inventoryData, user) => {
         .select("sku");
 
     let nextNumber = 1;
-
     if (lastInventory?.sku) {
-        nextNumber =
-            parseInt(lastInventory.sku.replace("INV-", ""), 10) + 1;
+        nextNumber = parseInt(lastInventory.sku.replace("INV-", ""), 10) + 1;
     }
 
     const sku = `INV-${String(nextNumber).padStart(6, "0")}`;
@@ -211,13 +212,23 @@ const createInventory = async (inventoryData, user) => {
         purchasePrice,
         description,
         itemImage,
-        createdBy: user.id,
+        createdBy: user._id,
+    });
+
+    await logActivity({
+        user: user._id,
+        module: ACTIVITY_MODULES.INVENTORY,
+        action: ACTIVITY_ACTIONS.CREATE,
+        recordId: inventory._id,
+        recordCode: inventory.sku,
+        description: `Created inventory ${inventory.sku}.`,
+        ...requestInfo,
     });
 
     return inventory;
 };
 
-const updateInventory = async (inventoryId, inventoryData, user) => {
+const updateInventory = async (inventoryId, inventoryData, user, requestInfo) => {
 
     const inventory = await Inventory.findOne({_id: inventoryId, isDeleted: false });
     if (!inventory) {
@@ -316,11 +327,21 @@ const updateInventory = async (inventoryId, inventoryData, user) => {
         .populate("category", "categoryName")
         .populate("vendor", "vendorName")
         .populate("branch", "branchName");
+    
+    await logActivity({
+        user: user._id,
+        module: ACTIVITY_MODULES.INVENTORY,
+        action: ACTIVITY_ACTIONS.UPDATE,
+        recordId: updatedInventory._id,
+        recordCode: updatedInventory.sku,
+        description: `Updated inventory ${updatedInventory.sku}.`,
+        ...requestInfo,
+    });
 
     return updatedInventory;
 };
 
-const changeInventoryStatus = async (inventoryId, user) => {
+const changeInventoryStatus = async (inventoryId, user, requestInfo) => {
 
     const inventory = await Inventory.findOne({ _id: inventoryId, isDeleted: false });
     if (!inventory) {
@@ -339,26 +360,50 @@ const changeInventoryStatus = async (inventoryId, user) => {
     inventory.updatedBy = user._id;
     await inventory.save();
 
+    await logActivity({
+        user: user._id,
+        module: ACTIVITY_MODULES.INVENTORY,
+        action: ACTIVITY_ACTIONS.STATUS_CHANGE,
+        recordId: inventory._id,
+        recordCode: inventory.sku,
+        description: `Inventory ${inventory.sku} was ${
+            inventory.isActive ? "activated" : "deactivated"
+        }.`,
+        metadata: {
+            isActive: inventory.isActive,
+        },
+        ...requestInfo,
+    });
+
     return inventory;
 };
 
-const deleteInventory = async (inventoryId, user) => {
+const deleteInventory = async (inventoryId, user, requestInfo) => {
 
     const inventory = await Inventory.findOne({_id: inventoryId, isDeleted: false });
     if (!inventory) {
         throw new ApiError(404, "Inventory not found.");
     }
 
-    // TODO:
-    // After implementing Inventory Transactions, prevent deletion if stock movement exists.
-    // const transactionExists = await InventoryTransaction.exists({inventory: inventoryId });
-    // if (transactionExists) {
-    //     throw new ApiError(400, "Cannot delete inventory with stock transaction history.");
-    // }
+    // Prevent deletion if stock movement exists.
+    const transactionExists = await StockMovement.exists({inventory: inventoryId });
+    if (transactionExists) {
+        throw new ApiError(400, "Cannot delete inventory with stock transaction history.");
+    }
 
     inventory.isDeleted = true;
     inventory.deletedBy = user._id;
     await inventory.save();
+
+    await logActivity({
+        user: user._id,
+        module: ACTIVITY_MODULES.INVENTORY,
+        action: ACTIVITY_ACTIONS.DELETE,
+        recordId: inventory._id,
+        recordCode: inventory.sku,
+        description: `Deleted inventory ${inventory.sku}.`,
+        ...requestInfo,
+    });
 
     return inventory;
 };
