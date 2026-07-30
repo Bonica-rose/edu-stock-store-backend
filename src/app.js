@@ -13,6 +13,8 @@ const stockMoveRoutes = require("./routes/stockMovement.routes")
 const purchaseRoutes = require("./routes/purchase.routes");
 const assetRoutes = require("./routes/asset.routes");
 const maintenanceRoutes = require("./routes/maintenance.routes.js");
+const activityRoutes = require("./routes/activity.routes");
+const settingRoutes = require("./routes/settings.routes");
 
 // Middlewares
 const { logger } = require("./config/logger.js");
@@ -58,6 +60,8 @@ app.use(`${API_VERSION}/stock-movements`, stockMoveRoutes);
 app.use(`${API_VERSION}/purchases`, purchaseRoutes);
 app.use(`${API_VERSION}/assets`, assetRoutes);
 app.use(`${API_VERSION}/maintenance`, maintenanceRoutes);
+app.use(`${API_VERSION}/activity-log`, activityRoutes);
+app.use(`${API_VERSION}/settings`, settingRoutes);
 
 // 404
 app.use(notFound);

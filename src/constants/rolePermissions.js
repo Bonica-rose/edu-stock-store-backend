@@ -48,6 +48,8 @@ const rolePermissions = Object.freeze({
 
         PERMISSIONS.ACTIVITY_VIEW,
 
+        PERMISSIONS.SETTINGS_VIEW,
+
         PERMISSIONS.REPORT_VIEW,
     ],
 
@@ -92,6 +94,7 @@ const rolePermissions = Object.freeze({
         PERMISSIONS.ASSET_VIEW,
         PERMISSIONS.MAINTENANCE_VIEW,
         PERMISSIONS.ACTIVITY_VIEW,
+        PERMISSIONS.SETTINGS_VIEW,
         
         PERMISSIONS.REPORT_VIEW,
     ]
