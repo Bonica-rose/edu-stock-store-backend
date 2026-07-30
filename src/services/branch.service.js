@@ -2,8 +2,10 @@ const Branch = require("../models/branch.model");
 const ApiError = require("../utils/apiError.util");
 const Inventory = require("../models/inventory.model");
 const Asset = require("../models/asset.model");
+const { logActivity } = require("./activity.service");
+const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
 
-const createBranch = async (branchData, userId) => {
+const createBranch = async (branchData, userId, requestInfo) => {
     // Check duplicate branch code
     const existingBranchCode = await Branch.findOne({
         branchCode: branchData.branchCode.toUpperCase(),
@@ -34,6 +36,16 @@ const createBranch = async (branchData, userId) => {
         manager: null,
         createdBy: userId,
         updatedBy: userId,
+    });
+
+    await logActivity({
+        user: userId,
+        module: ACTIVITY_MODULES.BRANCH,
+        action: ACTIVITY_ACTIONS.CREATE,
+        recordId: branch._id,
+        recordCode: branch.branchCode,
+        description: `Created branch ${branch.branchName}.`,
+        ...requestInfo,
     });
 
     return branch;
@@ -113,7 +125,7 @@ const getBranchById = async (branchId) => {
     return branch;
 };
 
-const updateBranch = async (branchId, branchData, userId) => {
+const updateBranch = async (branchId, branchData, userId, requestInfo) => {
     const branch = await Branch.findById(branchId);
     if (!branch) {
         throw new ApiError(404, "Branch not found.");
@@ -157,6 +169,16 @@ const updateBranch = async (branchId, branchData, userId) => {
     branch.updatedBy = userId;
     await branch.save();
 
+    await logActivity({
+        user: userId,
+        module: ACTIVITY_MODULES.BRANCH,
+        action: ACTIVITY_ACTIONS.UPDATE,
+        recordId: branch._id,
+        recordCode: branch.branchCode,
+        description: `Updated branch ${branch.branchName}.`,
+        ...requestInfo,
+    });
+
     return await Branch.findById(branch._id)
         .populate("manager", "firstName lastName email phone")
         .populate("createdBy", "employeeId firstName lastName")
@@ -164,7 +186,7 @@ const updateBranch = async (branchId, branchData, userId) => {
         .lean();
 };
 
-const changeBranchStatus = async (branchId, isActive, userId) => {
+const changeBranchStatus = async (branchId, isActive, userId, requestInfo) => {
     const branch = await Branch.findById(branchId);
 
     if (!branch) {
@@ -199,6 +221,21 @@ const changeBranchStatus = async (branchId, isActive, userId) => {
     branch.updatedBy = userId;
 
     await branch.save();
+
+    await logActivity({
+        user: userId,
+        module: ACTIVITY_MODULES.BRANCH,
+        action: ACTIVITY_ACTIONS.STATUS_CHANGE,
+        recordId: branch._id,
+        recordCode: branch.branchCode,
+        description: `${branch.branchName} branch was ${
+            branch.isActive ? "activated" : "deactivated"
+        }.`,
+        metadata: {
+            isActive: branch.isActive,
+        },
+        ...requestInfo,
+    });
 
     return await Branch.findById(branch._id)
         .populate("manager", "employeeId firstName lastName")

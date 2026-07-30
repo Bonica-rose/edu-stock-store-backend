@@ -4,7 +4,7 @@ const { successResponse } = require("../utils/apiResponse.util");
 
 exports.stockIn = asyncHandler(async (req, res) => {
 
-    const movement = await stockMovementService.stockIn(req.body, req.user);
+    const movement = await stockMovementService.stockIn(req.body, req.user, req.requestInfo);
 
     successResponse(res, 200, "Stock added successfully.", movement);
 });
@@ -12,7 +12,7 @@ exports.stockIn = asyncHandler(async (req, res) => {
 
 exports.stockOut = asyncHandler(async (req, res) => {
 
-    const movement = await stockMovementService.stockOut(req.body, req.user);
+    const movement = await stockMovementService.stockOut(req.body, req.user, req.requestInfo);
 
     successResponse(res, 201, "Stock issued successfully.", movement);
 });
@@ -20,7 +20,7 @@ exports.stockOut = asyncHandler(async (req, res) => {
 
 exports.transferStock = asyncHandler(async (req, res) => {
 
-    const result = await stockMovementService.transferStock(req.body, req.user);
+    const result = await stockMovementService.transferStock(req.body, req.user, req.requestInfo);
 
     successResponse(res, 201, "Stock transferred successfully.", result);
 });
@@ -28,7 +28,7 @@ exports.transferStock = asyncHandler(async (req, res) => {
 
 exports.adjustStock = asyncHandler(async (req, res) => {
 
-    const movement = await stockMovementService.adjustStock(req.body, req.user);
+    const movement = await stockMovementService.adjustStock(req.body, req.user, req.requestInfo);
 
     successResponse(res, 201, "Stock adjusted successfully.", movement);
 });

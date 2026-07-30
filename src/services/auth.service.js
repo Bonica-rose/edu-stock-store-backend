@@ -3,6 +3,8 @@ const jwt = require("jsonwebtoken");
 const ApiError = require("../utils/apiError.util");
 const User = require("../models/user.model");
 const { mapUser } = require("../utils/userResponse.util");
+const { logActivity } = require("./activity.service");
+const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
 
 /*
 |--- Part 1 – Helpers
@@ -74,7 +76,7 @@ const getCookieOptions = () => {
 /*
 |--- Part 2 – Authentication
 */
-const login = async ({ email, password }) => {
+const login = async ({ email, password }, requestInfo) => {
 
     const user = await User
         .findOne({ email: email.toLowerCase().trim(), deletedAt: null })
@@ -105,13 +107,35 @@ const login = async ({ email, password }) => {
     delete safeUser.password;
     delete safeUser.__v;    
 
+    await logActivity({
+        user: safeUser._id,
+        module: ACTIVITY_MODULES.AUTH,
+        action: ACTIVITY_ACTIONS.LOGIN,
+        recordId: safeUser._id,
+        recordCode: safeUser.employeeId,
+        description: `${safeUser.firstName} ${safeUser.lastName} logged in.`,
+        ...requestInfo,
+    });
+
     return {
         token,
         user: mapUser(safeUser),        
     };
 };
 
-const logout = () => true;
+const logout = async (user, requestInfo) => {
+    await logActivity({
+        user: user._id,
+        module: ACTIVITY_MODULES.AUTH,
+        action: ACTIVITY_ACTIONS.LOGOUT,
+        recordId: user._id,
+        recordCode: user.employeeId,
+        description: `${user.firstName} ${user.lastName} logged out.`,
+        ...requestInfo,
+    });
+
+    return true;
+};
 
 const getCurrentUser = async (id) => {
 
@@ -127,7 +151,7 @@ const getCurrentUser = async (id) => {
     return mapUser(user);    
 };
 
-const changePassword = async (id, currentPassword, newPassword) => {
+const changePassword = async (id, currentPassword, newPassword, requestInfo) => {
 
     const user = await User.findOne({_id: id, deletedAt: null}).select("+password");
     if (!user)
@@ -146,6 +170,16 @@ const changePassword = async (id, currentPassword, newPassword) => {
     user.mustChangePassword = false;
     user.updatedBy = user._id;
     await user.save();
+
+    await logActivity({
+        user: id,
+        module: ACTIVITY_MODULES.AUTH,
+        action: ACTIVITY_ACTIONS.CHANGE_PASSWORD,
+        recordId: user._id,
+        recordCode: user.employeeId,
+        description: `Changed password for${user.firstName} ${user.lastName}.`,
+        ...requestInfo,
+    });
 };
 
 module.exports = {

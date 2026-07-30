@@ -17,28 +17,33 @@ exports.getCategory = asyncHandler(async (req, res) => {
 
 exports.createCategory = asyncHandler(async (req, res) => {
 
-    const category = await categoryService.createCategory(req.body, req.user._id);
+    const category = await categoryService.createCategory(req.body, req.user._id, req.requestInfo);
 
     successResponse(res, 200, "Category created successfully", category);
 });
 
 exports.updateCategory = asyncHandler(async (req, res) => {
 
-    const category = await categoryService.updateCategory(req.params.id, req.body);
+    const category = await categoryService.updateCategory(
+        req.params.id,
+        req.body,
+        req.user._id,
+        req.requestInfo
+    );
 
     successResponse(res, 200, "Category updated successfully", category);
 });
 
 exports.changeCategoryStatus = asyncHandler(async (req, res) => {
 
-    const category = await categoryService.changeCategoryStatus(req.params.id, req.user._id);
+    const category = await categoryService.changeCategoryStatus(req.params.id, req.user._id, req.requestInfo);
 
     successResponse(res, 200, "Category status updated successfully", category);
 });
 
 exports.deleteCategory = asyncHandler(async (req, res) => {
 
-    await categoryService.deleteCategory(req.params.id);
+    await categoryService.deleteCategory(req.params.id, req.user._id, req.requestInfo);
 
     successResponse(res, 200, "Category deleted successfully");
 });

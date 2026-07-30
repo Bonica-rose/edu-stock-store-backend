@@ -51,6 +51,8 @@ const Permissions = Object.freeze({
     MAINTENANCE_COMPLETE: "maintenance:complete",
     MAINTENANCE_DELETE: "maintenance:delete",
 
+    ACTIVITY_VIEW: "activity:view",
+
     REPORT_VIEW: "report:view",
 
     SETTINGS_MANAGE: "settings:manage",

@@ -18,35 +18,50 @@ exports.getMaintenance = asyncHandler(async (req, res) => {
 
 exports.createMaintenance = asyncHandler(async (req, res) => {
 
-    const maintenance = await maintenanceService.createMaintenance(req.body, req.user.id );
+    const maintenance = await maintenanceService.createMaintenance(req.body, req.user._id, req.reqestInfo);
 
     successResponse(res, 201, "Maintenance request created successfully.", maintenance);
 });
 
 exports.assignMaintenance = asyncHandler(async (req, res) => {
 
-    const maintenance = await maintenanceService.assignMaintenance(req.params.id, req.body, req.user.id);
+    const maintenance = await maintenanceService.assignMaintenance(
+        req.params.id,
+        req.body,
+        req.user._id,
+        req.reqestInfo
+    );
 
     successResponse(res, 200, "Maintenance assigned successfully.", maintenance);
 });
 
 exports.updateMaintenanceStatus = asyncHandler(async (req, res) => {
 
-    const maintenance = await maintenanceService.updateMaintenanceStatus(req.params.id, req.body);
+    const maintenance = await maintenanceService.updateMaintenanceStatus(
+        req.params.id,
+        req.body,
+        req.user._id,
+        req.reqestInfo
+    );
 
     successResponse(res, 200, "Maintenance status updated successfully.", maintenance);
 });
 
 exports.completeMaintenance = asyncHandler(async (req, res) => {
 
-    const maintenance = await maintenanceService.completeMaintenance(req.params.id, req.body);
+    const maintenance = await maintenanceService.completeMaintenance(
+        req.params.id,
+        req.body,
+        req.user._id,
+        req.reqestInfo
+    );
 
     successResponse(res, 200, "Maintenance completed successfully.", maintenance);
 });
 
 exports.deleteMaintenance = asyncHandler(async (req, res) => {
 
-    await maintenanceService.deleteMaintenance(req.params.id);
+    await maintenanceService.deleteMaintenance(req.params.id, req.user._id, req.reqestInfo);
 
     successResponse(res, 200, "Maintenance deleted successfully.", null);
 });

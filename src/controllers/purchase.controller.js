@@ -15,7 +15,7 @@ exports.getPurchase = asyncHandler(async (req, res) => {
 });
 
 exports.createPurchase = asyncHandler(async (req, res) => {
-    const purchase = await purchaseService.createPurchase(req.body, req.user);
+    const purchase = await purchaseService.createPurchase(req.body, req.user, req.requestInfo);
 
     successResponse(res, 200, "Purchase created successfully.", purchase);
 });

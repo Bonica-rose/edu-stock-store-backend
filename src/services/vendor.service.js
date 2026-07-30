@@ -1,5 +1,8 @@
 const Vendor = require("../models/vendor.model");
+const Purchase = require("../models/purchase.model");
 const ApiError = require("../utils/apiError.util");
+const { logActivity } = require("./activity.service");
+const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
 
 const getVendors = async (query) => {
     const {
@@ -72,7 +75,7 @@ const getVendor = async (vendorId) => {
     return vendor;
 };
 
-const createVendor = async (vendorData, userId) => {
+const createVendor = async (vendorData, userId, requestInfo) => {
     const {
         vendorCode,
         vendorName,
@@ -128,12 +131,22 @@ const createVendor = async (vendorData, userId) => {
         createdBy: userId,
     });
 
+    await logActivity({
+        user: userId,
+        module: ACTIVITY_MODULES.VENDOR,
+        action: ACTIVITY_ACTIONS.CREATE,
+        recordId: vendor._id,
+        recordCode: vendor.vendorCode,
+        description: `Created vendor ${vendor.vendorName}.`,
+        ...requestInfo,
+    });
+
     return await Vendor.findById(vendor._id)
         .populate("createdBy", "employeeId firstName lastName email")
         .lean();
 };
 
-const updateVendor = async (vendorId, vendorData, userId) => {
+const updateVendor = async (vendorId, vendorData, userId, requestInfo) => {
     const vendor = await Vendor.findById(vendorId);
     if (!vendor) {
         throw new ApiError(404, "Vendor not found.");
@@ -239,13 +252,23 @@ const updateVendor = async (vendorId, vendorData, userId) => {
     vendor.updatedBy = userId;
     await vendor.save();
 
+    await logActivity({
+        user: userId,
+        module: ACTIVITY_MODULES.VENDOR,
+        action: ACTIVITY_ACTIONS.UPDATE,
+        recordId: vendor._id,
+        recordCode: vendor.vendorCode,
+        description: `Updated vendor ${vendor.vendorName}.`,
+        ...requestInfo,
+    });
+
     return await Vendor.findById(vendor._id)
         .populate("createdBy", "employeeId firstName lastName email")
         .populate("updatedBy", "employeeId firstName lastName email")
         .lean();
 };
 
-const changeVendorStatus = async (vendorId, userId) => {
+const changeVendorStatus = async (vendorId, userId, requestInfo) => {
     const vendor = await Vendor.findById(vendorId);
 
     if (!vendor) {
@@ -255,8 +278,22 @@ const changeVendorStatus = async (vendorId, userId) => {
     // Toggle status
     vendor.isActive = !vendor.isActive;
     vendor.updatedBy = userId;
-
     await vendor.save();
+
+    await logActivity({
+        user: userId,
+        module: ACTIVITY_MODULES.VENDOR,
+        action: ACTIVITY_ACTIONS.STATUS_CHANGE,
+        recordId: vendor._id,
+        recordCode: vendor.vendorCode,
+        description: `${vendor.vendorName} vendor was ${
+            vendor.isActive ? "activated" : "deactivated"
+        }.`,
+        metadata: {
+            isActive: vendor.isActive,
+        },
+        ...requestInfo,
+    });
 
     return await Vendor.findById(vendor._id)
         .populate("createdBy", "employeeId firstName lastName email")
@@ -264,22 +301,31 @@ const changeVendorStatus = async (vendorId, userId) => {
         .lean();
 };
 
-const deleteVendor = async (vendorId) => {
+const deleteVendor = async (vendorId, userId, requestInfo) => {
+    
     const vendor = await Vendor.findById(vendorId);
-
     if (!vendor) {
         throw new ApiError(404, "Vendor not found.");
     }
 
-    // Future enhancement:
     // Before deleting, check whether this vendor is referenced in Purchase Orders or GRNs.
-    // const purchaseExists = await Purchase.exists({vendor: vendorId});
-    // if (purchaseExists) {
-    //     throw new ApiError(
-    //         409, "Vendor cannot be deleted because it is used in purchase records. Deactivate it instead.");
-    // }
+    const purchaseExists = await Purchase.exists({vendor: vendorId});
+    if (purchaseExists) {
+        throw new ApiError(
+            409, "Vendor cannot be deleted because it is used in purchase records. Deactivate it instead.");
+    }
 
     await vendor.deleteOne();
+
+    await logActivity({
+        user: userId,
+        module: ACTIVITY_MODULES.VENDOR,
+        action: ACTIVITY_ACTIONS.DELETE,
+        recordId: vendor._id,
+        recordCode: vendor.vendorCode,
+        description: `Deleted vendor ${vendor.vendorName}.`,
+        ...requestInfo,
+    });
 
     return;
 };

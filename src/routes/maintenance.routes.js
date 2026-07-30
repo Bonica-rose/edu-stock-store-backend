@@ -1,6 +1,6 @@
 const express = require("express");
 const maintenanceRouter = express.Router();
-const { PERMISSIONS } = require("../constants/permission.constants");
+const { PERMISSIONS } = require("../constants/permissions");
 const maintenanceController = require("../controllers/maintenance.controller");
 
 const validate = require("../middleware/validate");
