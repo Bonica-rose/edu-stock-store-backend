@@ -8,3 +8,7 @@ const activityIdValidator = [
         .custom(objectIdValidator)
         .withMessage("Invalid activity ID."),
 ];
+
+module.exports = {
+    activityIdValidator
+}
