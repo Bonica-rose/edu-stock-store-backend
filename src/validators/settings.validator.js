@@ -52,3 +52,7 @@ const updateSettingsValidator = [
         .isBoolean()
         .withMessage("Maintenance mode must be true or false."),
 ];
+
+module.exports = {
+    updateSettingsValidator
+}

@@ -57,6 +57,7 @@ const Permissions = Object.freeze({
     SETTINGS_UPDATE: "settings:update",
 
     REPORT_VIEW: "report:view",
+    REPORT_EXPORT: "report:export",
 });
 
 exports.PERMISSIONS = Permissions;
