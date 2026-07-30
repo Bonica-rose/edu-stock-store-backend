@@ -102,6 +102,7 @@ const maintenanceSchema = new mongoose.Schema(
     },
     {
         timestamps: true,
+        versionKey: false,
     }
 );
 

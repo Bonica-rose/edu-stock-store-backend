@@ -53,9 +53,10 @@ const Permissions = Object.freeze({
 
     ACTIVITY_VIEW: "activity:view",
 
-    REPORT_VIEW: "report:view",
+    SETTINGS_VIEW: "settings:view",
+    SETTINGS_UPDATE: "settings:update",
 
-    SETTINGS_MANAGE: "settings:manage",
+    REPORT_VIEW: "report:view",
 });
 
 exports.PERMISSIONS = Permissions;
