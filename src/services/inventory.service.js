@@ -7,6 +7,7 @@ const ApiError = require("../utils/apiError.util");
 const { ROLES } = require("../constants/roles");
 const { logActivity } = require("./activity.service");
 const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
+const { getSettings } = require("./settings.service");
 
 const getInventories = async (query, user) => {
     const {
@@ -124,7 +125,7 @@ const createInventory = async (inventoryData, user, requestInfo) => {
         category,
         vendor,
         branch,
-        minimumStock,
+        minimumStock, // set value from settings model
         unit,
         purchasePrice,
         description,
@@ -199,6 +200,9 @@ const createInventory = async (inventoryData, user, requestInfo) => {
 
     const sku = `INV-${String(nextNumber).padStart(6, "0")}`;
 
+    const settings = await getSettings();
+    const minStock = settings.lowStockQuantityThreshold;
+
     const inventory = await Inventory.create({
         sku,
         itemName,
@@ -207,7 +211,7 @@ const createInventory = async (inventoryData, user, requestInfo) => {
         vendor,
         branch,
         currentStock: 0,
-        minimumStock,
+        minimumStock: minStock,
         unit,
         purchasePrice,
         description,
@@ -294,13 +298,7 @@ const updateInventory = async (inventoryId, inventoryData, user, requestInfo) =>
         }
     }
 
-    // Prevent updating protected fields
-    // delete inventoryData.sku;
-    // delete inventoryData.currentStock;
-    // delete inventoryData.createdBy;
-    // delete inventoryData.deletedBy;
-    // delete inventoryData.isDeleted;
-    // inventoryData.updatedBy = user._id;
+    const settings = await getSettings();
 
     const updateData = {
         itemName: inventoryData.itemName,
@@ -308,7 +306,7 @@ const updateInventory = async (inventoryId, inventoryData, user, requestInfo) =>
         category: inventoryData.category,
         vendor: inventoryData.vendor,
         branch: inventoryData.branch,
-        minimumStock: inventoryData.minimumStock,
+        minimumStock: inventoryData.minimumStock ?? settings.lowStockQuantityThreshold,
         unit: inventoryData.unit,
         purchasePrice: inventoryData.purchasePrice,
         description: inventoryData.description,
