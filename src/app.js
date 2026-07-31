@@ -8,6 +8,7 @@ const authRoutes = require("./routes/auth.routes");
 const userRoutes = require("./routes/user.routes");
 const branchRoutes = require("./routes/branch.routes");
 const categoryRoutes = require("./routes/category.routes")
+const vendorRoutes = require("./routes/vendor.routes");
 const inventoryRoutes = require("./routes/inventory.routes")
 const stockMoveRoutes = require("./routes/stockMovement.routes")
 const purchaseRoutes = require("./routes/purchase.routes");
@@ -16,6 +17,7 @@ const maintenanceRoutes = require("./routes/maintenance.routes.js");
 const activityRoutes = require("./routes/activity.routes");
 const settingRoutes = require("./routes/settings.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
+const reportRoutes = require("./routes/report.routes");
 
 // Middlewares
 const { logger } = require("./config/logger.js");
@@ -56,7 +58,8 @@ app.use(`${API_VERSION}/auth`, authRoutes);
 app.use(`${API_VERSION}/users`, userRoutes);
 app.use(`${API_VERSION}/branches`, branchRoutes);
 app.use(`${API_VERSION}/categories`, categoryRoutes);
-app.use(`${API_VERSION}/inventory`, inventoryRoutes);
+app.use(`${API_VERSION}/vendors`, vendorRoutes);
+app.use(`${API_VERSION}/inventories`, inventoryRoutes);
 app.use(`${API_VERSION}/stock-movements`, stockMoveRoutes);
 app.use(`${API_VERSION}/purchases`, purchaseRoutes);
 app.use(`${API_VERSION}/assets`, assetRoutes);
@@ -64,6 +67,7 @@ app.use(`${API_VERSION}/maintenance`, maintenanceRoutes);
 app.use(`${API_VERSION}/activity-log`, activityRoutes);
 app.use(`${API_VERSION}/settings`, settingRoutes);
 app.use(`${API_VERSION}/dashboard`, dashboardRoutes);
+app.use(`${API_VERSION}/reports`, reportRoutes);
 
 // 404
 app.use(notFound);

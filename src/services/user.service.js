@@ -115,19 +115,25 @@ exports.createUser = async (userData, loggedInUser, requestInfo) => {
         session.endSession();
     }
     
-    await user.populate("branch", "branchCode branchName")
-        .populate("createdBy", "employeeId firstName lastName")
-        .populate("updatedBy", "employeeId firstName lastName");
+    await user.populate([
+        { path: "branch", select: "branchCode branchName" },
+        { path: "createdBy", select: "employeeId firstName lastName" },
+        { path: "updatedBy", select: "employeeId firstName lastName" },
+    ]);
 
-    await logActivity({
-        user: loggedInUser._id,
-        module: ACTIVITY_MODULES.USER,
-        action: ACTIVITY_ACTIONS.CREATE,
-        recordId: user._id,
-        recordCode: user.employeeId,
-        description: `Created user ${user.firstName} ${user.lastName}.`,
-        ...requestInfo,
-    });
+    try {
+        await logActivity({
+            user: loggedInUser._id,
+            module: ACTIVITY_MODULES.USER,
+            action: ACTIVITY_ACTIONS.CREATE,
+            recordId: user._id,
+            recordCode: user.employeeId,
+            description: `Created user ${user.firstName} ${user.lastName}.`,
+            ...requestInfo,
+        });
+    } catch (err) {
+        console.error("Activity logging failed:", err);
+    }
 
     return mapUser(user);
 };
@@ -347,7 +353,12 @@ exports.updateUser = async (userId, userData, loggedInUser, requestInfo) => {
         const newLastName = userData.lastName ?? user.lastName;
         if (newFirstName.trim().toLowerCase() === newLastName.trim().toLowerCase()) {
             throw new ApiError(400, "Last name cannot be identical to first name");
-        }    
+        }   
+        
+        // Role changed -> Generate new Employee ID
+        if (userData.role && userData.role !== oldRole) {
+            user.employeeId = await generateEmployeeId(userData.role);
+        }
 
         // Update allowed fields only
         if (userData.firstName !== undefined)
@@ -565,7 +576,7 @@ exports.changeUserStatus = async (userId, isActive, loggedInUser, requestInfo) =
 
 exports.deleteUser = async (userId, loggedInUser, requestInfo) => {
 
-    const user = await User.findOne({_id: userId,deletedAt: null });
+    const user = await User.findOne({_id: userId, deletedAt: null });
     if (!user) {
         throw new ApiError(404, "User not found");
     }

@@ -1,3 +1,4 @@
+const User = require("../models/user.model");
 const Branch = require("../models/branch.model");
 const ApiError = require("../utils/apiError.util");
 const Inventory = require("../models/inventory.model");
@@ -30,7 +31,7 @@ const createBranch = async (branchData, userId, requestInfo) => {
         address: branchData.address.trim(),
         city: branchData.city.trim(),
         state: branchData.state.trim(),
-        country: branchData.country.trim(),
+        country: branchData.country,
         phone: branchData.phone?.trim() || null,
         email: branchData.email?.trim().toLowerCase() || null,
         manager: null,
