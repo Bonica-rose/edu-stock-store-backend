@@ -9,6 +9,7 @@ const { MAINTENANCE_STATUS } = require("../constants/maintenance.constants");
 const { getBranchFilter } = require("../utils/reportFilter.util");
 const { getReportQuery } = require("../utils/reportQuery.util");
 const { buildPagination } = require("../utils/pagination.util");
+const { exportToExcel } = require("../utils/exportExcel.util");
 
 const getDashboardSummary = async (user) => {
 
@@ -212,6 +213,32 @@ const getInventoryReport = async (query, user) => {
     };
 };
 
+const exportInventoryReport = async (query, user, res) => {
+    query.export = "true";
+
+    const { rows } = await getInventoryReport(query, user);
+
+    await exportToExcel(
+        res,
+        "inventory-report",
+        "Inventory Report",
+        [
+            { header: "SKU", key: "sku" },
+            { header: "Item Name", key: "itemName" },
+            { header: "Category", key: "category" },
+            { header: "Vendor", key: "vendor" },
+            { header: "Branch", key: "branch" },
+            { header: "Current Stock", key: "currentStock" },
+            { header: "Minimum Stock", key: "minimumStock" },
+            { header: "Purchase Price", key: "purchasePrice" },
+            { header: "Stock Value", key: "stockValue" },
+            { header: "Unit", key: "unit" },
+            { header: "Status", key: "isActive" },
+        ],
+        rows
+    );
+};
+
 const getLowStockReport = async (query, user) => {
     const { page, limit, skip, search, sortBy, sortOrder } = getReportQuery(query);
 
@@ -379,6 +406,33 @@ const getLowStockReport = async (query, user) => {
         rows,
         pagination: buildPagination(page, limit, totalRecords),
     };
+};
+
+const exportLowStockReport = async (query, user, res) => {
+    query.export = "true";
+
+    const { rows } = await getLowStockReport(query, user);
+
+    await exportToExcel(
+        res,
+        "low-stock-report",
+        "Low Stock Report",
+        [
+            { header: "SKU", key: "sku" },
+            { header: "Item Name", key: "itemName" },
+            { header: "Category", key: "category" },
+            { header: "Vendor", key: "vendor" },
+            { header: "Branch", key: "branch" },
+            { header: "Current Stock", key: "currentStock" },
+            { header: "Minimum Stock", key: "minimumStock" },
+            { header: "Shortage", key: "shortage" },
+            { header: "Purchase Price", key: "purchasePrice" },
+            { header: "Stock Value", key: "stockValue" },
+            { header: "Unit", key: "unit" },
+            { header: "Status", key: "isActive" },
+        ],
+        rows
+    );
 };
 
 const getAssetReport = async (query, user) => {
@@ -583,6 +637,34 @@ const getAssetReport = async (query, user) => {
         rows,
         pagination: buildPagination(page, limit, totalRecords),
     };
+};
+
+const exportAssetReport = async (query, user, res) => {
+    query.export = "true";
+
+    const { rows } = await getAssetReport(query, user);
+
+    await exportToExcel(
+        res,
+        "asset-report",
+        "Asset Report",
+        [
+            { header: "Asset Code", key: "assetCode" },
+            { header: "Item Name", key: "itemName" },
+            { header: "SKU", key: "sku" },
+            { header: "Category", key: "category" },
+            { header: "Vendor", key: "vendor" },
+            { header: "Serial Number", key: "serialNumber" },
+            { header: "Branch", key: "branch" },
+            { header: "Assigned To", key: "assignedTo" },
+            { header: "Status", key: "status" },
+            { header: "Condition", key: "condition" },
+            { header: "Purchase Price", key: "purchasePrice" },
+            { header: "Unit", key: "unit" },
+            { header: "Created At", key: "createdAt" },
+        ],
+        rows
+    );
 };
 
 const getStockMovementReport = async (query, user) => {
@@ -800,6 +882,42 @@ const getStockMovementReport = async (query, user) => {
     };
 };
 
+const exportStockMovementReport = async (query, user, res) => {
+    query.export = "true";
+
+    const { rows } = await getStockMovementReport(query, user);
+
+    const exportRows = rows.map((row) => ({
+        ...row,
+        fromBranch: row.fromBranch || "-",
+        toBranch: row.toBranch || "-",
+        remarks: row.remarks || "-",
+    }));
+
+    await exportToExcel(
+        res,
+        "stock-movement-report",
+        "Stock Movement Report",
+        [
+            { header: "Date", key: "createdAt" },
+            { header: "SKU", key: "sku" },
+            { header: "Item Name", key: "itemName" },
+            { header: "Category", key: "category" },
+            { header: "Movement Type", key: "movementType" },
+            { header: "Quantity", key: "quantity" },
+            { header: "Previous Stock", key: "previousStock" },
+            { header: "New Stock", key: "newStock" },
+            { header: "Branch", key: "branch" },
+            { header: "From Branch", key: "fromBranch" },
+            { header: "To Branch", key: "toBranch" },
+            { header: "Reason", key: "reason" },
+            { header: "Remarks", key: "remarks" },
+            { header: "Performed By", key: "performedBy" },
+        ],
+        exportRows
+    );
+};
+
 const getPurchaseSummary = async (query, user) => {
     const { page, limit, skip, search, sortBy, sortOrder, from, to } = getReportQuery(query);
 
@@ -947,6 +1065,37 @@ const getPurchaseSummary = async (query, user) => {
         rows,
         pagination: buildPagination(page, limit, totalRecords),
     };
+};
+
+const exportPurchaseSummary = async (query, user, res) => {
+    query.export = "true";
+
+    const { rows } = await getPurchaseSummary(query, user);
+
+    const exportRows = rows.map((row) => ({
+        ...row,
+        vendor: row.vendor || "-",
+        branch: row.branch || "-",
+        createdBy: row.createdBy || "-",
+        purchaseDate: row.purchaseDate || "-",
+    }));
+
+    await exportToExcel(
+        res,
+        "purchase-summary-report",
+        "Purchase Summary",
+        [
+            { header: "Purchase No", key: "purchaseNo" },
+            { header: "Purchase Date", key: "purchaseDate" },
+            { header: "Vendor", key: "vendor" },
+            { header: "Branch", key: "branch" },
+            { header: "Total Items", key: "totalItems" },
+            { header: "Total Quantity", key: "totalQuantity" },
+            { header: "Total Amount", key: "totalAmount" },
+            { header: "Created By", key: "createdBy" },
+        ],
+        exportRows
+    );
 };
 
 const getMaintenanceReport = async (query, user) => {
@@ -1177,6 +1326,47 @@ const getMaintenanceReport = async (query, user) => {
     };
 };
 
+const exportMaintenanceReport = async (query, user, res) => {
+    query.export = "true";
+
+    const { rows } = await getMaintenanceReport(query, user);
+
+    const exportRows = rows.map((row) => ({
+        ...row,
+        itemName: row.itemName || "-",
+        vendor: row.vendor || "-",
+        assignedTo: row.assignedTo || "-",
+        repairCost: row.repairCost ?? 0,
+        createdAt: row.createdAt
+            ? new Date(row.createdAt).toLocaleDateString("en-IN")
+            : "-",
+        completedDate: row.completedDate
+            ? new Date(row.completedDate).toLocaleDateString("en-IN")
+            : "-",
+    }));
+
+    await exportToExcel(
+        res,
+        "maintenance-report",
+        "Maintenance Report",
+        [
+            { header: "Maintenance ID", key: "maintenanceId" },
+            { header: "Asset Code", key: "assetCode" },
+            { header: "Item Name", key: "itemName" },
+            { header: "Issue Title", key: "issueTitle" },
+            { header: "Priority", key: "priority" },
+            { header: "Status", key: "status" },
+            { header: "Reported By", key: "reportedBy" },
+            { header: "Assigned To", key: "assignedTo" },
+            { header: "Vendor", key: "vendor" },
+            { header: "Repair Cost", key: "repairCost" },
+            { header: "Created Date", key: "createdAt" },
+            { header: "Completed Date", key: "completedDate" },
+        ],
+        exportRows
+    );
+};
+
 const getVendorReport = async (query) => {
     const {
         page,
@@ -1305,7 +1495,51 @@ const getVendorReport = async (query) => {
     };
 };
 
+const exportVendorReport = async (query, user, res) => {
+    query.export = "true";
+
+    const { rows } = await getVendorReport(query, user);
+
+    const exportRows = rows.map((row) => ({
+        ...row,
+        contactPerson: row.contactPerson || "-",
+        phone: row.phone || "-",
+        email: row.email || "-",
+        city: row.city || "-",
+        state: row.state || "-",
+        inventoryCount: row.inventoryCount ?? 0,
+        purchaseCount: row.purchaseCount ?? 0,
+        totalPurchaseAmount: row.totalPurchaseAmount ?? 0,
+        status: row.isActive ? "Active" : "Inactive",
+        createdAt: row.createdAt
+            ? new Date(row.createdAt).toLocaleDateString("en-IN")
+            : "-",
+    }));
+
+    await exportToExcel(
+        res,
+        "vendor-report",
+        "Vendor Report",
+        [
+            { header: "Vendor Code", key: "vendorCode" },
+            { header: "Vendor Name", key: "vendorName" },
+            { header: "Contact Person", key: "contactPerson" },
+            { header: "Phone", key: "phone" },
+            { header: "Email", key: "email" },
+            { header: "City", key: "city" },
+            { header: "State", key: "state" },
+            { header: "Inventory Items", key: "inventoryCount" },
+            { header: "Purchase Count", key: "purchaseCount" },
+            { header: "Total Purchase Amount", key: "totalPurchaseAmount" },
+            { header: "Status", key: "status" },
+            { header: "Created Date", key: "createdAt" },
+        ],
+        exportRows
+    );
+};
+
 module.exports = {
+    // reports
     getDashboardSummary,
     getInventoryReport,
     getLowStockReport,
@@ -1314,4 +1548,13 @@ module.exports = {
     getPurchaseSummary,
     getMaintenanceReport,
     getVendorReport,
+
+    // exports
+    exportInventoryReport,
+    exportLowStockReport,
+    exportAssetReport,
+    exportStockMovementReport,
+    exportPurchaseSummary,
+    exportMaintenanceReport,
+    exportVendorReport,
 };
