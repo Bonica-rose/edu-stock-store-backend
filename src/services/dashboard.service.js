@@ -8,6 +8,7 @@ const Maintenance = require("../models/maintenance.model");
 const Activity = require("../models/activity.model");
 const ApiError = require("../utils/apiError.util");
 const { ROLES } = require("../constants/roles");
+const { getSettings } = require("./settings.service");
 
 const getAuditorDashboard = async (branchId) => {
     const [
@@ -79,6 +80,9 @@ const getMaintenanceDashboard = async (branchId) => {
 };
 
 const getInventoryDashboard = async (branchId) => {
+
+    const settings = await getSettings();
+
     const [
         inventory,
         lowStock,
@@ -94,7 +98,7 @@ const getInventoryDashboard = async (branchId) => {
             branch: branchId,
             isDeleted: false,
             $expr: {
-                $lte: ["$currentStock", "$minimumStock"]
+                $lte: ["$currentStock", settings.lowStockQuantityThreshold]
             }
         }),
 
@@ -120,6 +124,8 @@ const getInventoryDashboard = async (branchId) => {
 };
 
 const getBranchAdminDashboard = async (branchId) => {
+    const settings = await getSettings();
+
     const [
         inventory,
         assets,
@@ -135,7 +141,7 @@ const getBranchAdminDashboard = async (branchId) => {
         Inventory.countDocuments({
             branch: branchId,
             isDeleted: false,
-            $expr: { $lte: ["$currentStock", "$minimumStock"] }
+            $expr: { $lte: ["$currentStock", settings.lowStockQuantityThreshold] }
         }),
         Activity.find({ branch: branchId })
             .sort({ createdAt: -1 })
@@ -157,6 +163,9 @@ const getBranchAdminDashboard = async (branchId) => {
 };
 
 const getSuperAdminDashboard = async () => {
+
+    const settings = await getSettings();
+
     const [
         totalBranches,
         totalUsers,
@@ -174,7 +183,7 @@ const getSuperAdminDashboard = async () => {
         Asset.countDocuments({ isDeleted: false }),
         Inventory.countDocuments({
             isDeleted: false,
-            $expr: { $lte: ["$currentStock", "$minimumStock"] }
+            $expr: { $lte: ["$currentStock", settings.lowStockQuantityThreshold] }
         }),
         Maintenance.countDocuments({
             status: { $in: ["Pending", "In Progress"] }
