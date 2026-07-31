@@ -50,11 +50,25 @@ const settingsSchema = new mongoose.Schema(
             default: "DD/MM/YYYY",
         },
 
-        // Inventory
-        lowStockThreshold: {
+        // Inventory Settings
+        lowStockQuantityThreshold: {
             type: Number,
             default: 10,
             min: 1,
+        },
+
+        // AI Prediction Settings
+        predictionAlertDays: {
+            type: Number,
+            default: 10,
+            min: 1,
+        },
+
+        // AI Prediction Settings
+        predictionHistoryDays: {
+            type: Number,
+            default: 30,
+            min: 7,
         },
 
         // General

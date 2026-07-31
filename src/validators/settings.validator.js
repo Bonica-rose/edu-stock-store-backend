@@ -42,10 +42,20 @@ const updateSettingsValidator = [
         ])
         .withMessage("Invalid date format."),
 
-    body("lowStockThreshold")
+    body("lowStockQuantityThreshold")
         .optional()
         .isInt({ min: 1 })
         .withMessage("Low stock threshold must be greater than 0."),
+    
+    body("predictionAlertDays")
+        .optional()
+        .isInt({ min: 1 })
+        .withMessage("Prediction Alert Days must be greater than 0."),
+    
+    body("predictionHistoryDays")
+        .optional()
+        .isInt({ min: 7 })
+        .withMessage("Prediction Analyse History Days must be greater than 6."),
 
     body("isMaintenanceMode")
         .optional()
