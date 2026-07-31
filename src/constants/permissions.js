@@ -56,8 +56,28 @@ const Permissions = Object.freeze({
     SETTINGS_VIEW: "settings:view",
     SETTINGS_UPDATE: "settings:update",
 
-    REPORT_VIEW: "report:view",
-    REPORT_EXPORT: "report:export",
+    REPORT_DASHBOARD: "report:dashboard",
+
+    REPORT_INVENTORY: "report:inventory",
+    REPORT_INVENTORY_EXPORT: "report:inventory:export",
+
+    REPORT_LOW_STOCK: "report:low_stock",
+    REPORT_LOW_STOCK_EXPORT: "report:low_stock:export",
+
+    REPORT_ASSET: "report:asset",
+    REPORT_ASSET_EXPORT: "report:asset:export",
+
+    REPORT_STOCK_MOVEMENT: "report:stock_movement",
+    REPORT_STOCK_MOVEMENT_EXPORT: "report:stock_movement:export",
+
+    REPORT_PURCHASE: "report:purchase",
+    REPORT_PURCHASE_EXPORT: "report:purchase:export",
+
+    REPORT_MAINTENANCE: "report:maintenance",
+    REPORT_MAINTENANCE_EXPORT: "report:maintenance:export",
+
+    REPORT_VENDOR: "report:vendor",
+    REPORT_VENDOR_EXPORT: "report:vendor:export",
 });
 
 exports.PERMISSIONS = Permissions;
