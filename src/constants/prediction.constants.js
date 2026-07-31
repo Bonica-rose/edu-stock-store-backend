@@ -8,7 +8,7 @@ const PREDICTION_RISK = {
 const PREDICTION_RECOMMENDATIONS = {
     PURCHASE_IMMEDIATELY: "Purchase immediately.",
     PURCHASE_THIS_WEEK: "Place a purchase order this week.",
-    MONITOR_STOCK: "Monitor inventory closely.",
+    MONITOR_CLOSELY: "Monitor inventory closely.",
     STOCK_HEALTHY: "Stock level is healthy.",
     NO_CONSUMPTION: "No recent stock consumption.",
 };
