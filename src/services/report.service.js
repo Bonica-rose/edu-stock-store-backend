@@ -10,10 +10,13 @@ const { getBranchFilter } = require("../utils/reportFilter.util");
 const { getReportQuery } = require("../utils/reportQuery.util");
 const { buildPagination } = require("../utils/pagination.util");
 const { exportToExcel } = require("../utils/exportExcel.util");
+const { getSettings } = require("./settings.service");
 
 const getDashboardSummary = async (user) => {
 
     const branchFilter = getBranchFilter(user);
+
+    const settings = await getSettings();
 
     const [
         inventoryItems,
@@ -37,7 +40,9 @@ const getDashboardSummary = async (user) => {
         Inventory.countDocuments({
             ...branchFilter,
             $expr: {
-                $lte: ["$currentStock", "$minimumStock"],
+                $lte: ["$currentStock", {
+                    $add : ["$minimumStock", settings.lowStockQuantityThreshold]
+                }],
             },
         }),
 
@@ -246,12 +251,16 @@ const getLowStockReport = async (query, user) => {
 
     const branchFilter = getBranchFilter(user);
 
+    const settings = await getSettings();
+
     const match = {
         ...branchFilter,
         isDeleted: false,
 
         $expr: {
-            $lte: ["$currentStock", "$minimumStock"],
+            $lte: ["$currentStock",{
+                    $add: [ "$minimumStock", settings.lowStockQuantityThreshold,],
+                }],
         },
     };
 
@@ -349,9 +358,11 @@ const getLowStockReport = async (query, user) => {
                 minimumStock: 1,
 
                 shortage: {
-                    $subtract: [
-                        "$minimumStock",
-                        "$currentStock",
+                    $max: [
+                        {
+                            $subtract: [ "$minimumStock", "$currentStock",],
+                        },
+                        0,
                     ],
                 },
 
