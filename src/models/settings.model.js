@@ -34,6 +34,11 @@ const settingsSchema = new mongoose.Schema(
             default: "",
         },
 
+        companyLogoPublicId: {
+            type: String,
+            default: "",
+        },
+
         // System Settings
         defaultCurrency: {
             type: String,

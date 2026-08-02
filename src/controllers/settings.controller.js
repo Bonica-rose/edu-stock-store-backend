@@ -10,7 +10,7 @@ const getSettings = asyncHandler(async (req, res) => {
 
 const updateSettings = asyncHandler(async (req, res) => {
     const settings = await settingsService.updateSettings(
-        req.body, req.user._id, req.requestInfo
+        req.body, req.file, req.user._id, req.requestInfo
     );
 
     successResponse(res, 200, "Settings updated successfully.", settings);

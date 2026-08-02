@@ -7,6 +7,7 @@ const validate = require("../middleware/validate");
 const { updateSettingsValidator } = require("../validators/settings.validator");
 const protect = require("../middleware/auth.middleware");
 const authorize = require("../middleware/authorize.middleware");
+const upload = require("../middleware/multer");
 
 settingsRouter.get(
     "/",
@@ -14,9 +15,9 @@ settingsRouter.get(
     settingsController.getSettings
 );
 
-settingsRouter.put(
+settingsRouter.patch(
     "/",
-    protect, authorize(PERMISSIONS.SETTINGS_UPDATE),
+    protect, authorize(PERMISSIONS.SETTINGS_UPDATE),  upload.single("companyLogo"),
     updateSettingsValidator, validate,
     settingsController.updateSettings
 );

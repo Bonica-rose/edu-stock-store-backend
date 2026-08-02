@@ -29,10 +29,6 @@ const updateSettingsValidator = [
         .matches(/^[a-zA-Z0-9\s,.'-]*$/)
         .withMessage("Address can only contain letters, numbers, spaces, and , . ' - characters."),
 
-    body("companyLogo")
-        .optional()
-        .trim(),
-
     body("defaultCurrency")
         .optional()
         .trim()
