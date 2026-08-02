@@ -1,24 +1,33 @@
 const { body } = require("express-validator");
 
 const updateSettingsValidator = [
+
     body("companyName")
         .optional()
         .trim()
         .notEmpty()
-        .withMessage("Company name is required."),
+        .withMessage("Company name is required.")
+        .isLength({ max: 100 })
+        .withMessage("Company name cannot exceed 100 characters."),
 
     body("companyEmail")
-        .optional()
+        .optional({ values: "falsy" })
+        .trim()
         .isEmail()
         .withMessage("Invalid company email."),
 
     body("companyPhone")
-        .optional()
-        .trim(),
+        .optional({ values: "falsy" })
+        .trim()
+        .matches(/^[6-9]\d{9}$/)
+        .withMessage("Enter a valid 10-digit phone number."),
 
     body("companyAddress")
-        .optional()
-        .trim(),
+        .optional({ values: "falsy" })
+        .trim()
+        .isLength({ max: 250 }).withMessage("Company address cannot exceed 250 characters.")
+        .matches(/^[a-zA-Z0-9\s,.'-]*$/)
+        .withMessage("Address can only contain letters, numbers, spaces, and , . ' - characters."),
 
     body("companyLogo")
         .optional()
@@ -26,12 +35,17 @@ const updateSettingsValidator = [
 
     body("defaultCurrency")
         .optional()
+        .trim()
         .isLength({ min: 3, max: 3 })
-        .withMessage("Currency must be a 3-letter code."),
+        .withMessage("Currency must be a 3-letter code.")
+        .isUppercase()
+        .withMessage("Currency must be uppercase."),
 
     body("timezone")
         .optional()
-        .trim(),
+        .trim()
+        .notEmpty()
+        .withMessage("Timezone is required."),
 
     body("dateFormat")
         .optional()
@@ -46,16 +60,16 @@ const updateSettingsValidator = [
         .optional()
         .isInt({ min: 1 })
         .withMessage("Low stock threshold must be greater than 0."),
-    
+
     body("predictionAlertDays")
         .optional()
         .isInt({ min: 1 })
         .withMessage("Prediction Alert Days must be greater than 0."),
-    
+
     body("predictionHistoryDays")
         .optional()
         .isInt({ min: 7 })
-        .withMessage("Prediction Analyse History Days must be greater than 6."),
+        .withMessage("Prediction History Days must be at least 7."),
 
     body("isMaintenanceMode")
         .optional()
@@ -64,5 +78,5 @@ const updateSettingsValidator = [
 ];
 
 module.exports = {
-    updateSettingsValidator
-}
+    updateSettingsValidator,
+};
