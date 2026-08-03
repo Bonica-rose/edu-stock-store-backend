@@ -45,7 +45,7 @@ exports.createUserValidator = [
         .withMessage('New Password must contain at least one special character (@, $, !, %, *, ?, &, #)'),     
 
     body("phone")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
         .matches(/^[6-9]\d{9}$/).withMessage("Please provide a valid phone number"),
 
@@ -167,14 +167,9 @@ exports.updateOwnProfileValidator = [
         .matches(/^[a-zA-Z. ]+$/).withMessage('Last name must contain only letters, periods, and spaces'),        
 
     body("phone")
-        .optional({ nullable: true })
+        .optional({ values: "falsy" })
         .trim()
         .matches(/^[6-9]\d{9}$/).withMessage("Please provide a valid phone number"),
-
-    body("profileImage")
-        .optional({ nullable: true })
-        .trim()
-        .isURL().withMessage("Invalid profile image URL"),
 
     // Block forbidden fields
     body("email")

@@ -65,7 +65,7 @@ const completeMaintenanceValidator = [
         .withMessage("Parts replaced cannot exceed 500 characters."),
 
     body("vendor")
-        .optional({ nullable: true, checkFalsy: true })
+        .optional({ nullable: true, values: 'falsy' })
         .isMongoId()
         .withMessage("Invalid vendor id."),
     

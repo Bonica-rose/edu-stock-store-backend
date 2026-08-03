@@ -10,7 +10,7 @@ const createInventoryValidator = [
         .withMessage("Item name cannot exceed 100 characters."),
 
     body("barcode")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
         .isLength({ max: 100 })
         .withMessage("Barcode cannot exceed 100 characters."),
@@ -53,13 +53,13 @@ const createInventoryValidator = [
         .withMessage("Purchase price must be 0 or greater."),
 
     body("description")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
         .isLength({ max: 500 })
         .withMessage("Description cannot exceed 500 characters."),
 
     body("itemImage")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
 ];
 
@@ -80,7 +80,7 @@ const updateInventoryValidator = [
         .withMessage("Item name cannot exceed 100 characters."),
 
     body("barcode")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
         .isLength({ max: 100 })
         .withMessage("Barcode cannot exceed 100 characters."),
@@ -119,13 +119,13 @@ const updateInventoryValidator = [
         .withMessage("Purchase price must be 0 or greater."),
 
     body("description")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
         .isLength({ max: 500 })
         .withMessage("Description cannot exceed 500 characters."),
 
     body("itemImage")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
 ];
 

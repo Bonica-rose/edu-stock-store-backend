@@ -19,7 +19,7 @@ exports.createCategoryValidator = [
         .withMessage("Category code can only contain letters, numbers, hyphens, and underscores."),
 
     body("description")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
         .isLength({ max: 500 })
         .withMessage("Description cannot exceed 500 characters."),
@@ -57,7 +57,7 @@ exports.updateCategoryValidator = [
         ),
 
     body("description")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
         .isLength({ max: 500 })
         .withMessage("Description cannot exceed 500 characters."),

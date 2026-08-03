@@ -52,6 +52,10 @@ const userSchema = new mongoose.Schema(
             type: String,
             default: null,
         },
+        profileImagePublicId: {
+            type: String,
+            default: "",
+        },
         isActive: {
             type: Boolean,
             required: [true, 'Active status is required'],

@@ -18,6 +18,7 @@ const activityRoutes = require("./routes/activity.routes");
 const settingRoutes = require("./routes/settings.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 const reportRoutes = require("./routes/report.routes");
+const setupRoutes = require("./routes/setup.routes");
 
 // Middlewares
 const { logger } = require("./config/logger.js");
@@ -68,6 +69,7 @@ app.use(`${API_VERSION}/activity-log`, activityRoutes);
 app.use(`${API_VERSION}/settings`, settingRoutes);
 app.use(`${API_VERSION}/dashboard`, dashboardRoutes);
 app.use(`${API_VERSION}/reports`, reportRoutes);
+app.use(`${API_VERSION}/setup`, setupRoutes);
 
 // 404
 app.use(notFound);

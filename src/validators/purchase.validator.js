@@ -40,7 +40,7 @@ const createPurchaseValidator = [
         .withMessage("Invalid purchase date."),
 
     body("notes")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
         .isLength({ max: 500 })
         .withMessage("Notes cannot exceed 500 characters."),

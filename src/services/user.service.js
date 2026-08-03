@@ -5,9 +5,12 @@ const ApiError = require("../utils/apiError.util");
 const { hashPassword } = require("./auth.service");
 const generateEmployeeId = require("../utils/generateEmployeeId.util");
 const { ROLES, BRANCH_ADMIN_ALLOWED_USER_ROLES } = require("../constants/roles");
+const Activity = require("../models/activity.model");
 const { logActivity } = require("./activity.service");
 const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
 const { mapUser, mapUsers } = require("../utils/userResponse.util");
+const { uploadToCloudinary, deleteFromCloudinary } = require("../utils/cloudinary");
+
 
 exports.createUser = async (userData, loggedInUser, requestInfo) => {
     const { firstName, lastName, email, password, phone, role, branch, profileImage} = userData;
@@ -435,7 +438,7 @@ exports.updateUser = async (userId, userData, loggedInUser, requestInfo) => {
     }
 };
 
-exports.updateOwnProfile = async (userId, profileData) => {
+exports.updateOwnProfile = async (userId, file, profileData) => {
 
     /* To update own profile, it may contain only firstName, lastName, phone, profileImage */
 
@@ -463,8 +466,16 @@ exports.updateOwnProfile = async (userId, profileData) => {
         user.phone = profileData.phone?.trim() || null;
     }
 
-    if (profileData.profileImage !== undefined) {
-        user.profileImage = profileData.profileImage || null;
+    if (file) {
+        await deleteFromCloudinary(user.profileImagePublicId);
+
+        const photo = await uploadToCloudinary(
+            file.path,
+            "edu-stock-store/users"
+        );
+
+        user.profileImage = photo.url;
+        user.profileImagePublicId = photo.publicId;
     }
 
     user.updatedBy = user._id;
@@ -475,6 +486,14 @@ exports.updateOwnProfile = async (userId, profileData) => {
     await user.populate("updatedBy", "employeeId firstName lastName");
 
     return mapUser(user);
+};
+
+exports.getProfileActivity = async (userId) => {
+
+    return await Activity.find({user: userId, module: ACTIVITY_MODULES.AUTH, })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select("action description ipAddress userAgent createdAt");
 };
 
 exports.changeUserStatus = async (userId, isActive, loggedInUser, requestInfo) => {

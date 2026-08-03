@@ -51,20 +51,20 @@ const createBranchValidator = [
         .withMessage("Country cannot exceed 50 characters"),
 
     body("phone")
-        .optional({ nullable: true, checkFalsy: true })
+        .optional({ nullable: true, values: 'falsy' })
         .trim()
         .matches(/^[6-9]\d{9}$/)
         .withMessage("Phone number must be a valid 10-digit Indian mobile number"),
 
     body("email")
-        .optional({ nullable: true, checkFalsy: true })
+        .optional({ nullable: true, values: 'falsy' })
         .trim()
         .isEmail()
         .withMessage("Invalid email address")
         .normalizeEmail(),
 
     body("manager")
-        .optional({ nullable: true, checkFalsy: true })
+        .optional({ nullable: true, values: 'falsy' })
         .custom((value) => {
             if (!isValidObjectId(value)) {
                 throw new Error("Invalid manager ID");
@@ -127,20 +127,20 @@ const updateBranchValidator = [
         .withMessage("Country cannot exceed 50 characters"),
 
     body("phone")
-        .optional({ nullable: true, checkFalsy: true })
+        .optional({ nullable: true, values: 'falsy' })
         .trim()
         .matches(/^[6-9]\d{9}$/)
         .withMessage("Phone number must be a valid 10-digit Indian mobile number"),
 
     body("email")
-        .optional({ nullable: true, checkFalsy: true })
+        .optional({ nullable: true, values: 'falsy' })
         .trim()
         .isEmail()
         .withMessage("Invalid email address")
         .normalizeEmail(),
 
     body("manager")
-        .optional({ nullable: true, checkFalsy: true })
+        .optional({ nullable: true, values: 'falsy' })
         .custom((value) => {
             if (!isValidObjectId(value)) {
                 throw new Error("Invalid manager ID");

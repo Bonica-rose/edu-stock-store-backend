@@ -11,13 +11,13 @@ const createAssetValidator = [
         .withMessage("Invalid inventory ID."),
 
     body("serialNumber")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
         .isLength({ max: 100 })
         .withMessage("Serial number cannot exceed 100 characters."),
 
     body("remarks")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
         .isLength({ max: 500 })
         .withMessage("Remarks cannot exceed 500 characters."),
@@ -25,13 +25,13 @@ const createAssetValidator = [
 
 const updateAssetValidator = [
     body("serialNumber")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
         .isLength({ max: 100 })
         .withMessage("Serial number cannot exceed 100 characters."),
 
     body("remarks")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
         .isLength({ max: 500 })
         .withMessage("Remarks cannot exceed 500 characters."),
@@ -45,7 +45,7 @@ const assignAssetValidator = [
         .withMessage("Invalid user ID."),
 
     body("remarks")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
         .isLength({ max: 500 })
         .withMessage("Remarks cannot exceed 500 characters."),
@@ -53,7 +53,7 @@ const assignAssetValidator = [
 
 const returnAssetValidator = [
     body("remarks")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
         .isLength({ max: 500 })
         .withMessage("Remarks cannot exceed 500 characters."),

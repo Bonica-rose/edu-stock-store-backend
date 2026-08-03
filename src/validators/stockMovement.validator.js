@@ -29,7 +29,7 @@ const stockMovementValidator = [
         .withMessage("Reason cannot exceed 100 characters."),
 
     body("remarks")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
         .isLength({ max: 500 })
         .withMessage("Remarks cannot exceed 500 characters."),
@@ -64,7 +64,7 @@ const transferStockValidator = [
         .withMessage("Reason cannot exceed 100 characters."),
 
     body("remarks")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
         .isLength({ max: 500 })
         .withMessage("Remarks cannot exceed 500 characters."),
@@ -94,7 +94,7 @@ const adjustmentValidator = [
         .withMessage("Reason cannot exceed 100 characters."),
 
     body("remarks")
-        .optional({ checkFalsy: true })
+        .optional({ values: 'falsy' })
         .trim()
         .isLength({ max: 500 })
         .withMessage("Remarks cannot exceed 500 characters."),

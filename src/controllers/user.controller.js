@@ -32,9 +32,19 @@ exports.updateUser = asyncHandler(async (req, res) => {
 
 exports.updateOwnProfile = asyncHandler(async (req, res) => {
 
-    const user = await userService.updateOwnProfile(req.user._id, req.body);
+    // console.log("req.file", req.file);
+    // console.log("req.body", req.body);
+
+    const user = await userService.updateOwnProfile(req.user._id, req.file, req.body);
 
     successResponse(res, 200, "Profile updated successfully", user);
+});
+
+exports.getProfileActivity = asyncHandler(async (req, res) => {
+    
+    const activities = await userService.getProfileActivity(req.user._id);
+
+    successResponse(res, 200, "Recent activity retrieved successfully", activities);
 });
 
 exports.changeUserStatus = asyncHandler(async (req, res) => {

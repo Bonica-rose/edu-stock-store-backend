@@ -8,6 +8,7 @@ const userController = require("../controllers/user.controller");
 const protect = require("../middleware/auth.middleware");
 const authorize = require("../middleware/authorize.middleware");
 const validate = require("../middleware/validate");
+const upload = require("../middleware/multer");
 
 const {
     createUserValidator,
@@ -41,6 +42,19 @@ userRouter.get(
 );
 
 userRouter.patch(
+    "/profile",
+    protect, upload.single("profileImage"),
+    updateOwnProfileValidator,validate,
+    userController.updateOwnProfile
+);
+
+userRouter.get(
+    "/profile/activity",
+    protect,
+    userController.getProfileActivity
+);
+
+userRouter.patch(
     "/:id",
     protect, authorize(PERMISSIONS.USER_UPDATE),
     userIdParamValidator, updateUserValidator,
@@ -61,13 +75,5 @@ userRouter.delete(
     userIdParamValidator, validate,
     userController.deleteUser
 );
-
-userRouter.patch(
-    "/profile",
-    protect,
-    updateOwnProfileValidator,validate,
-    userController.updateOwnProfile
-);
-
 
 module.exports = userRouter;
