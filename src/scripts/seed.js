@@ -36,7 +36,7 @@ const runSeeder = async () => {
     const session = await mongoose.startSession();
     try {
         session.startTransaction();
-        console.log("Starting database seed...");
+        console.log("\nStarting database seed...");       
 
         const adminData = {
             firstName: process.env.SUPER_ADMIN_FIRST_NAME,
@@ -45,9 +45,18 @@ const runSeeder = async () => {
             password: process.env.SUPER_ADMIN_PASSWORD,
         };
 
-        const branch = await seedBranch(session);
+        const branchData = {
+            branchCode: "HO",
+            branchName: "Head Office",
+            address: "Main Office",
+            city: "Trivandrum",
+            state: "Kerala",
+            country: "India",
+        };
 
-        await seedSettings(session);
+        const branch = await seedBranch(branchData, session);
+
+        const systemSettings = await seedSettings(session);
         
         const admin = await seedSuperAdmin(adminData, branch, session);
 
@@ -58,8 +67,15 @@ const runSeeder = async () => {
             await branch.save({ session });
         }
 
+        systemSettings.initialized = true;
+        await systemSettings.save({ session });
+
         await session.commitTransaction();
-        console.log("\n✔ Database seeded successfully.");
+        console.info("\n✔ Head Office created.");
+        console.info("\n✔ Settings created.");
+        console.info("\n✔ Super Admin created.");
+        console.info("\n✔ Database seeded successfully.");
+        console.info("\n✔ System initialized successfully.");
 
     } catch (err) {
         await session.abortTransaction();

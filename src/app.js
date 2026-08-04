@@ -55,6 +55,10 @@ app.use(logger);
 app.use(requestInfo);
 
 // Routes 
+app.use((req, res, next) => {
+    console.log(`${req.method} ${req.originalUrl}`);
+    next();
+});
 app.use(`${API_VERSION}/auth`, authRoutes);
 app.use(`${API_VERSION}/users`, userRoutes);
 app.use(`${API_VERSION}/branches`, branchRoutes);

@@ -1,51 +1,47 @@
 const mongoose = require("mongoose");
 
-const User = require("../models/user.model");
+const Settings = require("../models/settings.model");
 
 const seedBranch = require("../seeders/branch.seeder");
 const seedSettings = require("../seeders/settings.seeder");
 const seedSuperAdmin = require("../seeders/superAdmin.seeder");
 
-const ApiError = require("../utils/ApiError");
+const ApiError = require("../utils/apiError.util");
 
 const getSetupStatus = async () => {
-    const userCount = await User.countDocuments({
-        deletedAt: null,
-    });
-
+    const settings = await Settings.findOne();
     return {
-        isSetupCompleted: userCount > 0,
+        isSetupCompleted: settings?.initialized ?? false,
     };
 };
 
 const runSetup = async (setupData) => {
 
-    // Prevent running setup twice
-    const existingUser = await User.exists({ deletedAt: null });
-    if (existingUser) {
-        throw new ApiError(409, "System has already been initialized.");
-    }
-
     const session = await mongoose.startSession();
     try {
         session.startTransaction();
 
+        // Prevent running setup twice
+        const settings = await Settings.findOne().session(session);
+        if (settings) {
+            throw new ApiError(409, "System has already been initialized.");
+        }
+
         // Create Head Office
-        const branch = await seedBranch(session);
+        const branch = await seedBranch(setupData, session);
 
         // Create Default Settings
-        await seedSettings(session);
+        const systemSettings = await seedSettings(session);
 
         // Create Super Admin
-        const admin = await seedSuperAdmin(setupData,  session, branch);
+        const admin = await seedSuperAdmin(setupData, branch, session);
 
-        // Update branch createdBy
-        if (!branch.createdBy) {
-            branch.createdBy = admin._id;
-            branch.updatedBy = admin._id;
+        branch.createdBy = admin._id;
+        branch.updatedBy = admin._id;
+        await branch.save({ session });
 
-            await branch.save({ session });
-        }
+        systemSettings.initialized = true;
+        await systemSettings.save({ session });
 
         await session.commitTransaction();
 

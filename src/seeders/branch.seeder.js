@@ -1,15 +1,8 @@
 const installationService = require("../services/installation.service");
 
-module.exports = async (session) => {
+module.exports = async (data, session) => {
     return installationService.createBranch(
-        {
-            branchCode: "HO",
-            branchName: "Head Office",
-            address: "Main Office",
-            city: "Trivandrum",
-            state: "Kerala",
-            country: "India",
-        },
+        data, 
         session
     );
 };

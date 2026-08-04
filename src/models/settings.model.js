@@ -55,6 +55,11 @@ const settingsSchema = new mongoose.Schema(
             default: "DD/MM/YYYY",
         },
 
+        initialized: {
+            type: Boolean,
+            default: false,
+        },
+
         // Inventory Settings
         lowStockQuantityThreshold: {
             type: Number,

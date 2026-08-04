@@ -3,9 +3,7 @@ const Branch = require("../models/branch.model");
 const Settings = require("../models/settings.model");
 
 const { ROLES } = require("../constants/roles");
-
 const { hashPassword } = require("./auth.service");
-
 const generateEmployeeId = require("../utils/generateEmployeeId.util");
 
 exports.createBranch = async (branchData, session) => {
@@ -30,7 +28,7 @@ exports.createBranch = async (branchData, session) => {
                 phone: branchData.phone ?? null,
                 email: branchData.email ?? null,
                 isActive: true,
-                createdBy: null,
+                createdBy: branchData.createdBy ?? null,
                 updatedBy: null,
             },
         ],
@@ -91,7 +89,7 @@ exports.createSuperAdmin = async (adminData, branch, session) => {
                 role: ROLES.SUPER_ADMIN,
                 branch: branch._id,
 
-                phone: adminData.phone ?? null,
+                phone: null,
                 profileImage: null,
 
                 isActive: true,
@@ -107,14 +105,6 @@ exports.createSuperAdmin = async (adminData, branch, session) => {
         ],
         { session }
     );
-
-    // Update branch audit fields if not already set
-    if (!branch.createdBy) {
-        branch.createdBy = user._id;
-        branch.updatedBy = user._id;
-
-        await branch.save({ session });
-    }
 
     return user;
 };

@@ -6,6 +6,8 @@ const { mapUser } = require("../utils/userResponse.util");
 const { logActivity } = require("./activity.service");
 const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
 
+const { ROLE_PERMISSIONS } = require("../constants/rolePermissions");
+
 /*
 |--- Part 1 – Helpers
 */
@@ -148,7 +150,12 @@ const getCurrentUser = async (id) => {
     if (!user)
         throw new ApiError(404, "User not found");
 
-    return mapUser(user);    
+    const mappedUser = mapUser(user);
+    mappedUser.permissions = ROLE_PERMISSIONS[mappedUser.role] ?? [];
+
+    return mappedUser;
+
+    // return mapUser(user);    
 };
 
 const changePassword = async (id, currentPassword, newPassword, requestInfo) => {

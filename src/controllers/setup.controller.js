@@ -6,7 +6,7 @@ exports.getSetupStatus = asyncHandler(async (req, res) => {
 
     const result = await setupService.getSetupStatus();
 
-    successResponse(res, 200, "Setup status retrieved successfully.", result);
+    successResponse(res, 200, "", result);
 });
 
 exports.runSetup = asyncHandler(async (req, res) => {
