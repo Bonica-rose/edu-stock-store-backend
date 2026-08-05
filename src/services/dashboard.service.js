@@ -19,12 +19,12 @@ const getAuditorDashboard = async (branchId) => {
     ] = await Promise.all([
         Inventory.countDocuments({
             branch: branchId,
-            isDeleted: false
+            isDeleted: null
         }),
 
         Asset.countDocuments({
             branch: branchId,
-            isDeleted: false
+            isDeleted: null
         }),
 
         StockMovement.countDocuments({
@@ -34,7 +34,7 @@ const getAuditorDashboard = async (branchId) => {
         Activity.find({ branch: branchId })
             .sort({ createdAt: -1 })
             .limit(10)
-            .populate("performedBy", "firstName lastName")
+            .populate("user", "firstName lastName")
             .lean()
     ]);
 
@@ -91,12 +91,12 @@ const getInventoryDashboard = async (branchId) => {
     ] = await Promise.all([
         Inventory.countDocuments({
             branch: branchId,
-            isDeleted: false
+            isDeleted: null
         }),
 
         Inventory.countDocuments({
             branch: branchId,
-            isDeleted: false,
+            isDeleted: null,
             $expr: {
                 $lte: ["$currentStock", settings.lowStockQuantityThreshold]
             }
@@ -134,19 +134,19 @@ const getBranchAdminDashboard = async (branchId) => {
         lowStock,
         recentActivities
     ] = await Promise.all([
-        Inventory.countDocuments({ branch: branchId, isDeleted: false }),
-        Asset.countDocuments({ branch: branchId, isDeleted: false }),
-        User.countDocuments({ branch: branchId, isDeleted: false }),
+        Inventory.countDocuments({ branch: branchId, isDeleted: null }),
+        Asset.countDocuments({ branch: branchId, isDeleted: null }),
+        User.countDocuments({ branch: branchId, isDeleted: null }),
         Maintenance.countDocuments({ branch: branchId }),
         Inventory.countDocuments({
             branch: branchId,
-            isDeleted: false,
+            isDeleted: null,
             $expr: { $lte: ["$currentStock", settings.lowStockQuantityThreshold] }
         }),
         Activity.find({ branch: branchId })
             .sort({ createdAt: -1 })
             .limit(10)
-            .populate("performedBy", "firstName lastName")
+            .populate("user", "firstName lastName")
             .lean()
     ]);
 
@@ -176,13 +176,13 @@ const getSuperAdminDashboard = async () => {
         maintenance,
         recentActivities
     ] = await Promise.all([
-        Branch.countDocuments({ isDeleted: false }),
-        User.countDocuments({ isDeleted: false }),
-        Vendor.countDocuments({ isDeleted: false }),
-        Inventory.countDocuments({ isDeleted: false }),
-        Asset.countDocuments({ isDeleted: false }),
+        Branch.countDocuments({ isDeleted: null }),
+        User.countDocuments({ isDeleted: null }),
+        Vendor.countDocuments({ isDeleted: null }),
+        Inventory.countDocuments({ isDeleted: null }),
+        Asset.countDocuments({ isDeleted: null }),
         Inventory.countDocuments({
-            isDeleted: false,
+            isDeleted: null,
             $expr: { $lte: ["$currentStock", settings.lowStockQuantityThreshold] }
         }),
         Maintenance.countDocuments({
@@ -191,7 +191,7 @@ const getSuperAdminDashboard = async () => {
         Activity.find()
             .sort({ createdAt: -1 })
             .limit(10)
-            .populate("performedBy", "firstName lastName")
+            .populate("user", "firstName lastName")
             .lean()
     ]);
 

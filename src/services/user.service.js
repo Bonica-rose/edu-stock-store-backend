@@ -310,17 +310,34 @@ exports.updateUser = async (userId, userData, loggedInUser, requestInfo) => {
         }
 
         // Email uniqueness 
-        if (userData.email && userData.email.trim().toLowerCase() !== user.email) {
-            const emailExists = await User.exists({
-                email: userData.email.trim().toLowerCase(),
-                deletedAt: null,
-                _id: { $ne: userId },
-            }).session(session);
+        // if (userData.email && userData.email.trim().toLowerCase() !== user.email) {
+        //     const emailExists = await User.exists({
+        //         email: userData.email.trim().toLowerCase(),
+        //         deletedAt: null,
+        //         _id: { $ne: userId },
+        //     }).session(session);
 
-            if (emailExists) {
-                throw new ApiError(409, "Email already exists");
+        //     if (emailExists) {
+        //         throw new ApiError(409, "Email already exists");
+        //     }
+        // }
+        //  FIXED: Added type checking and safe string trimming
+        if (userData.email && typeof userData.email === "string" && userData.email.trim()) {
+            const trimmedEmail = userData.email.trim().toLowerCase();
+            
+            if (trimmedEmail !== user.email) {
+                const emailExists = await User.exists({
+                    email: trimmedEmail,
+                    deletedAt: null,
+                    _id: { $ne: userId },
+                }).session(session);
+
+                if (emailExists) {
+                    throw new ApiError(409, "Email already exists");
+                }
             }
         }
+
 
         // Branch  Validation
         if (userData.branch) {
@@ -354,9 +371,15 @@ exports.updateUser = async (userId, userData, loggedInUser, requestInfo) => {
         // First & Last name validation
         const newFirstName = userData.firstName ?? user.firstName;
         const newLastName = userData.lastName ?? user.lastName;
-        if (newFirstName.trim().toLowerCase() === newLastName.trim().toLowerCase()) {
+        // Dangerous (Crashes if fields are missing or not strings
+        // FIXED: Added type checking and safe string trimming        
+        if (
+            typeof newFirstName === 'string' && typeof newLastName === 'string' &&
+            newFirstName.trim().toLowerCase() === newLastName.trim().toLowerCase()
+        ) {
             throw new ApiError(400, "Last name cannot be identical to first name");
-        }   
+        }
+
         
         // Role changed -> Generate new Employee ID
         if (userData.role && userData.role !== oldRole) {
