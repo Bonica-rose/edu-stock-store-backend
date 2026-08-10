@@ -206,20 +206,22 @@ const getBranchesValidator = [
 
     query("isActive")
         .optional()
-        .isBoolean()
-        .withMessage("isActive must be true or false"),
+        .isIn(["true", "false", "all"])
+        .withMessage("isActive must be true, false, or all"),
 
     query("sort")
         .optional()
         .isIn([
-            "branchName",
-            "-branchName",
-            "branchCode",
-            "-branchCode",
-            "city",
-            "-city",
-            "createdAt",
-            "-createdAt",
+        "branchName",
+        "-branchName",
+        "branchCode",
+        "-branchCode",
+        "city",
+        "-city",
+        "isActive",
+        "-isActive",
+        "createdAt",
+        "-createdAt",
         ])
         .withMessage("Invalid sort field"),
 ];

@@ -67,10 +67,10 @@ const getBranches = async (query) => {
 
     if (search) {
         filter.$or = [
-            { branchCode: { $regex: search, $options: "i" } },
-            { branchName: { $regex: search, $options: "i" } },
-            { city: { $regex: search, $options: "i" } },
-            { state: { $regex: search, $options: "i" } },
+        { branchCode: { $regex: search, $options: "i" } },
+        { branchName: { $regex: search, $options: "i" } },
+        { city: { $regex: search, $options: "i" } },
+        { state: { $regex: search, $options: "i" } },
         ];
     }
 
@@ -82,21 +82,26 @@ const getBranches = async (query) => {
         filter.state = state;
     }
 
-    if (typeof isActive !== "undefined") {
+    // Only filter when explicitly true or false
+    if (isActive === "true" || isActive === "false") {
         filter.isActive = isActive === "true";
     }
+
+    // if (typeof isActive !== "undefined") {
+    //     filter.isActive = isActive === "true";
+    // }
 
     const skip = (Number(page) - 1) * Number(limit);
 
     const [branches, total] = await Promise.all([
         Branch.find(filter)
-            .populate("manager", "firstName lastName email")
-            .populate("createdBy", "employeeId firstName lastName")
-            .populate("updatedBy", "employeeId firstName lastName")
-            .sort(sort)
-            .skip(skip)
-            .limit(Number(limit))
-            .lean(),
+        .populate("manager", "firstName lastName email")
+        .populate("createdBy", "employeeId firstName lastName")
+        .populate("updatedBy", "employeeId firstName lastName")
+        .sort(sort)
+        .skip(skip)
+        .limit(Number(limit))
+        .lean(),
 
         Branch.countDocuments(filter),
     ]);
@@ -104,13 +109,13 @@ const getBranches = async (query) => {
     return {
         data: branches,
         pagination: {
-            total,
-            page: Number(page),
-            limit: Number(limit),
-            totalPages: Math.ceil(total / Number(limit)),
+        total,
+        page: Number(page),
+        limit: Number(limit),
+        totalPages: Math.ceil(total / Number(limit)),
         },
     };
-};
+};;
 
 const getBranchById = async (branchId) => {
     const branch = await Branch.findById(branchId)
