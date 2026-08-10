@@ -4,6 +4,7 @@ const ApiError = require("../utils/apiError.util");
 const Inventory = require("../models/inventory.model");
 const Asset = require("../models/asset.model");
 const { logActivity } = require("./activity.service");
+const { ROLES } = require("../constants/roles");
 const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
 
 const createBranch = async (branchData, userId, requestInfo) => {
@@ -34,7 +35,6 @@ const createBranch = async (branchData, userId, requestInfo) => {
         country: branchData.country,
         phone: branchData.phone?.trim() || null,
         email: branchData.email?.trim().toLowerCase() || null,
-        manager: null,
         createdBy: userId,
         updatedBy: userId,
     });
@@ -128,44 +128,89 @@ const getBranchById = async (branchId) => {
 
 const updateBranch = async (branchId, branchData, userId, requestInfo) => {
     const branch = await Branch.findById(branchId);
+
     if (!branch) {
         throw new ApiError(404, "Branch not found.");
     }
 
     // Check duplicate branch name (if changed)
-    if (branchData.branchName && branchData.branchName !== branch.branchName) {
+    if (
+        branchData.branchName &&
+        branchData.branchName.trim().toLowerCase() !==
+            branch.branchName.toLowerCase()
+    ) {
         const existingBranch = await Branch.findOne({
             branchName: {
                 $regex: new RegExp(`^${branchData.branchName.trim()}$`, "i"),
             },
             _id: { $ne: branchId },
         });
+
         if (existingBranch) {
             throw new ApiError(409, "Branch name already exists.");
         }
     }
 
-    // Update only allowed fields
-    if (branchData.branchName !== undefined)
+    // Validate and update manager
+    if (branchData.manager !== undefined) {
+        // Remove manager
+        if (!branchData.manager) {
+            branch.manager = null;
+        } else {
+            const manager = await User.findById(branchData.manager);
+
+            if (!manager) {
+                throw new ApiError(404, "Branch manager not found.");
+            }
+
+            if (!manager.isActive) {
+                throw new ApiError(400, "Branch manager must be active.");
+            }
+
+            if (manager.role !== ROLES.BRANCH_ADMIN) {
+                throw new ApiError(400, "Only Branch Admin can be assigned as Branch Manager.");
+            }
+
+            if (!manager.branch) {
+                throw new ApiError(400, "Branch Admin is not assigned to any branch.");
+            }
+
+            if (!manager.branch.equals(branch._id)) {
+                throw new ApiError(400, "Manager must belong to this branch.");
+            }
+
+            branch.manager = manager._id;
+        }
+    }
+
+    // Update allowed fields
+    if (branchData.branchName !== undefined) {
         branch.branchName = branchData.branchName.trim();
+    }
 
-    if (branchData.address !== undefined)
+    if (branchData.address !== undefined) {
         branch.address = branchData.address.trim();
+    }
 
-    if (branchData.city !== undefined)
+    if (branchData.city !== undefined) {
         branch.city = branchData.city.trim();
+    }
 
-    if (branchData.state !== undefined)
+    if (branchData.state !== undefined) {
         branch.state = branchData.state.trim();
+    }
 
-    if (branchData.country !== undefined)
-        branch.country = branchData.country.trim();
+    if (branchData.country !== undefined) {
+        branch.country = branchData.country?.trim() || "India";
+    }
 
-    if (branchData.phone !== undefined)
+    if (branchData.phone !== undefined) {
         branch.phone = branchData.phone?.trim() || null;
+    }
 
-    if (branchData.email !== undefined)
+    if (branchData.email !== undefined) {
         branch.email = branchData.email?.trim().toLowerCase() || null;
+    }
 
     branch.updatedBy = userId;
     await branch.save();
@@ -181,7 +226,7 @@ const updateBranch = async (branchId, branchData, userId, requestInfo) => {
     });
 
     return await Branch.findById(branch._id)
-        .populate("manager", "firstName lastName email phone")
+        .populate("manager", "employeeId firstName lastName email phone")
         .populate("createdBy", "employeeId firstName lastName")
         .populate("updatedBy", "employeeId firstName lastName")
         .lean();

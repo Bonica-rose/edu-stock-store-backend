@@ -58,7 +58,7 @@ exports.createUser = async (userData, loggedInUser, requestInfo) => {
     }
 
     // Email uniqueness
-    const existingUser = await User.findOne({email: email.toLowerCase().trim(), deletedAt: null });
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim(), deletedAt: null });
     if (existingUser) {
         throw new ApiError(409, "Email already exists");
     }
@@ -585,11 +585,12 @@ exports.changeUserStatus = async (userId, isActive, loggedInUser, requestInfo) =
         }
 
         await session.commitTransaction();
-
-        await user
-            .populate("branch", "branchCode branchName")
-            .populate("createdBy", "employeeId firstName lastName")
-            .populate("updatedBy", "employeeId firstName lastName");
+        
+        await user.populate([
+            { path: "branch", select: "branchCode branchName" },
+            { path: "createdBy", select: "employeeId firstName lastName" },
+            { path: "updatedBy", select: "employeeId firstName lastName" },
+        ]);
         
         await logActivity({
             user: loggedInUser._id,
@@ -609,6 +610,7 @@ exports.changeUserStatus = async (userId, isActive, loggedInUser, requestInfo) =
         return mapUser(user);
 
     } catch (error) {
+        console.log(error);
         await session.abortTransaction();
         throw error;
     } finally {

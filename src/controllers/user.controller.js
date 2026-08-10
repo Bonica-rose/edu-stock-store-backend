@@ -32,9 +32,6 @@ exports.updateUser = asyncHandler(async (req, res) => {
 
 exports.updateOwnProfile = asyncHandler(async (req, res) => {
 
-    // console.log("req.file", req.file);
-    // console.log("req.body", req.body);
-
     const user = await userService.updateOwnProfile(req.user._id, req.file, req.body);
 
     successResponse(res, 200, "Profile updated successfully", user);

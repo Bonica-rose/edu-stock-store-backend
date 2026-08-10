@@ -61,6 +61,8 @@ const branchSchema = new mongoose.Schema(
             type: mongoose.Schema.Types.ObjectId,
             ref: "User",
             default: null,
+            unique: true,
+            sparse: true,
         },
 
         isActive: {
@@ -91,7 +93,6 @@ branchSchema.index({ branchCode: 1 }, { unique: true });
 branchSchema.index({ branchName: 1 }, { unique: true });
 branchSchema.index({ city: 1 });
 branchSchema.index({ state: 1 });
-branchSchema.index({ manager: 1 });
 branchSchema.index({ isActive: 1 });
 
 module.exports = mongoose.model("Branch", branchSchema);

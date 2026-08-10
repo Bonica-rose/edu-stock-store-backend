@@ -95,7 +95,15 @@ const userSchema = new mongoose.Schema(
 );
 
 // Indexes
-userSchema.index({ email: 1 }, { unique: true });
+userSchema.index(
+    { email: 1 },
+    {
+        unique: true,
+        partialFilterExpression: {
+            deletedAt: null,
+        },
+    }
+);
 userSchema.index({ employeeId: 1 }, { unique: true });
 userSchema.index({ role: 1 });
 userSchema.index({ branch: 1 });

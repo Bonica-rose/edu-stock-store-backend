@@ -62,15 +62,6 @@ const createBranchValidator = [
         .isEmail()
         .withMessage("Invalid email address")
         .normalizeEmail(),
-
-    body("manager")
-        .optional({ nullable: true, values: 'falsy' })
-        .custom((value) => {
-            if (!isValidObjectId(value)) {
-                throw new Error("Invalid manager ID");
-            }
-            return true;
-        }),
 ];
 
 const updateBranchValidator = [
@@ -140,8 +131,12 @@ const updateBranchValidator = [
         .normalizeEmail(),
 
     body("manager")
-        .optional({ nullable: true, values: 'falsy' })
+        .optional({ nullable: true, values: "falsy" })
         .custom((value) => {
+            if (value === "" || value === null) {
+                return true;
+            }
+
             if (!isValidObjectId(value)) {
                 throw new Error("Invalid manager ID");
             }
