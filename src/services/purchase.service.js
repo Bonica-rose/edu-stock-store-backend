@@ -28,7 +28,6 @@ const createPurchase = async (purchaseData, user, requestInfo) => {
         // Validate Vendor
         const vendorExists = await Vendor.findOne({
             _id: vendor,
-            isDeleted: false,
             isActive: true,
         }).session(session);
         if (!vendorExists) {
@@ -38,7 +37,6 @@ const createPurchase = async (purchaseData, user, requestInfo) => {
         // Validate Branch
         const branchExists = await Branch.findOne({
             _id: branch,
-            isDeleted: false,
             isActive: true,
         }).session(session);
         if (!branchExists) {
@@ -98,11 +96,13 @@ const createPurchase = async (purchaseData, user, requestInfo) => {
                 {
                     inventory: item.inventory,
                     quantity: item.quantity,
+                    purchasePrice: item.purchasePrice,
                     reason: STOCK_MOVEMENT_REASONS.PURCHASE,
                     remarks: `Purchase ${purchaseNo}`,
                 },
                 user,
-                session
+                requestInfo,
+                session,
             );
         }
 
@@ -168,11 +168,16 @@ const getPurchases = async (query, user) => {
         filter.purchaseDate = {};
 
         if (startDate) {
-            filter.purchaseDate.$gte = new Date(startDate);
+            const start = new Date(startDate);
+            start.setHours(0, 0, 0, 0);
+            filter.purchaseDate.$gte = start;
         }
 
         if (endDate) {
-            filter.purchaseDate.$lte = new Date(endDate);
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+
+            filter.purchaseDate.$lte = end;
         }
     }
 

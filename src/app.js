@@ -64,7 +64,7 @@ app.use(`${API_VERSION}/users`, userRoutes);
 app.use(`${API_VERSION}/branches`, branchRoutes);
 app.use(`${API_VERSION}/categories`, categoryRoutes);
 app.use(`${API_VERSION}/vendors`, vendorRoutes);
-app.use(`${API_VERSION}/inventories`, inventoryRoutes);
+app.use(`${API_VERSION}/inventory`, inventoryRoutes);
 app.use(`${API_VERSION}/stock-movements`, stockMoveRoutes);
 app.use(`${API_VERSION}/purchases`, purchaseRoutes);
 app.use(`${API_VERSION}/assets`, assetRoutes);

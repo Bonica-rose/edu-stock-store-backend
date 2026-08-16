@@ -17,14 +17,28 @@ exports.getInventory = asyncHandler(async (req, res) => {
 
 exports.createInventory = asyncHandler(async (req, res) => {
 
-    const inventory = await inventoryService.createInventory(req.body, req.user, req.requestInfo);
+    const inventory = await inventoryService.createInventory(
+        req.body,
+        req.file,
+        req.user,
+        req.requestInfo,
+    );
 
     successResponse(res, 200, "Inventory created successfully", inventory);
 });
 
 exports.updateInventory = asyncHandler(async (req, res) => {
 
-    const inventory = await inventoryService.updateInventory(req.params.id, req.body, req.user, req.requestInfo);
+    console.log(req.params.id, req.body, req.file, req.user, req.requestInfo);
+    
+
+    const inventory = await inventoryService.updateInventory(
+        req.params.id,
+        req.body,
+        req.file,
+        req.user,
+        req.requestInfo,
+    );
 
     successResponse(res, 200, "Inventory updated successfully", inventory);
 });

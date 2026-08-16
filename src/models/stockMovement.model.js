@@ -1,5 +1,5 @@
 const mongoose = require("mongoose");
-const { MOVEMENT_TYPES } = require("../constants/stockMovement.constants");
+const { STOCK_MOVEMENT_TYPES } = require("../constants/stockMovement.constants");
 const User = require("../models/user.model");
 const Branch = require("../models/branch.model");
 const Inventory = require("../models/inventory.model");
@@ -14,7 +14,7 @@ const stockMovementSchema = new mongoose.Schema(
 
         movementType: {
             type: String,
-            enum: Object.values(MOVEMENT_TYPES),
+            enum: Object.values(STOCK_MOVEMENT_TYPES),
             required: true,
         },
 
@@ -79,7 +79,7 @@ const stockMovementSchema = new mongoose.Schema(
     {
         timestamps: true,
         versionKey: false,
-    }
+    },
 );
 
 // Indexes

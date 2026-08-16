@@ -33,11 +33,11 @@ const createInventoryValidator = [
         .custom((value) => mongoose.Types.ObjectId.isValid(value))
         .withMessage("Invalid branch ID."),
 
-    body("minimumStock")
-        .notEmpty()
-        .withMessage("Minimum stock is required.")
-        .isInt({ min: 0 })
-        .withMessage("Minimum stock must be 0 or greater."),
+    // body("minimumStock")
+    //     .notEmpty()
+    //     .withMessage("Minimum stock is required.")
+    //     .isInt({ min: 0 })
+    //     .withMessage("Minimum stock must be 0 or greater."),
 
     body("unit")
         .trim()
@@ -57,10 +57,6 @@ const createInventoryValidator = [
         .trim()
         .isLength({ max: 500 })
         .withMessage("Description cannot exceed 500 characters."),
-
-    body("itemImage")
-        .optional({ values: 'falsy' })
-        .trim()
 ];
 
 /**

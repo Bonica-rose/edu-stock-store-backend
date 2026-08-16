@@ -62,7 +62,7 @@ categorySchema.index({ type: 1 });
 categorySchema.index({ isActive: 1 });
 
 // Convert categoryName to title case
-categorySchema.pre("save", function (next) {
+categorySchema.pre("save", function () {
     if (this.categoryName) {
         this.categoryName = this.categoryName
             .trim()
@@ -78,8 +78,6 @@ categorySchema.pre("save", function (next) {
     if (this.categoryCode) {
         this.categoryCode = this.categoryCode.trim().toUpperCase();
     }
-
-    next();
 });
 
 module.exports = mongoose.model("Category", categorySchema);

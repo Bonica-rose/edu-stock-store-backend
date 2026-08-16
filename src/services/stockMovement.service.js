@@ -5,6 +5,7 @@ const Branch = require("../models/branch.model");
 const ApiError = require("../utils/apiError.util");
 const { ROLES } = require("../constants/roles");
 const { logActivity } = require("./activity.service");
+const { STOCK_MOVEMENT_REASONS, STOCK_MOVEMENT_TYPES } = require("../constants/stockMovement.constants");
 const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
 
 
@@ -28,31 +29,37 @@ const stockIn = async (movementData, user, requestInfo, session = null) => {
         }
 
         // Branch Admin restriction
-        if (
-            user.role === ROLES.BRANCH_ADMIN &&
-            inventory.branch.toString() !== user.branch.toString()
-        ) {
+        if (user.role === ROLES.BRANCH_ADMIN && inventory.branch.toString() !== user.branch.toString()) {
             throw new ApiError(403, "Not authorized for this branch.");
         }
 
         const previousStock = inventory.currentStock;
         const newStock = previousStock + movementData.quantity;
-        
+
         inventory.currentStock = newStock;
+        // Update latest purchase price when stock comes from a purchase
+        if (movementData.reason === STOCK_MOVEMENT_REASONS.PURCHASE && movementData.purchasePrice != null) {
+            inventory.purchasePrice = movementData.purchasePrice;
+        }
         await inventory.save({ session });
 
-        const movement = await StockMovement.create([{
-            inventory: inventory._id,
-            branch: inventory.branch,
-            movementType: "STOCK_IN",
-            quantity: movementData.quantity,
-            previousStock,
-            newStock,
-            reason: movementData.reason,
-            remarks: movementData.remarks,
-            performedBy: user._id,
-        }], { session });
-        
+        const movement = await StockMovement.create(
+            [
+                {
+                    inventory: inventory._id,
+                    branch: inventory.branch,
+                    movementType: STOCK_MOVEMENT_TYPES.STOCK_IN,
+                    quantity: movementData.quantity,
+                    previousStock,
+                    newStock,
+                    reason: movementData.reason,
+                    remarks: movementData.remarks,
+                    performedBy: user._id,
+                },
+            ],
+            { session },
+        );
+
         await logActivity(
             {
                 user: user._id,
@@ -70,14 +77,13 @@ const stockIn = async (movementData, user, requestInfo, session = null) => {
                 },
                 ...requestInfo,
             },
-            session
+            session,
         );
 
         if (ownSession) {
             await session.commitTransaction();
         }
         return movement[0];
-
     } catch (error) {
         if (ownSession) {
             await session.abortTransaction();
@@ -126,17 +132,22 @@ const stockOut = async (movementData, user, requestInfo, session = null) => {
         inventory.currentStock = newStock;
         await inventory.save({ session });
 
-        const movement = await StockMovement.create([{
-            inventory: inventory._id,
-            branch: inventory.branch,
-            movementType: "STOCK_OUT",
-            quantity: movementData.quantity,
-            previousStock,
-            newStock,
-            reason: movementData.reason,
-            remarks: movementData.remarks,
-            performedBy: user._id,
-        }], { session });
+        const movement = await StockMovement.create(
+          [
+            {
+              inventory: inventory._id,
+              branch: inventory.branch,
+              movementType: STOCK_MOVEMENT_TYPES.STOCK_OUT,
+              quantity: movementData.quantity,
+              previousStock,
+              newStock,
+              reason: movementData.reason,
+              remarks: movementData.remarks,
+              performedBy: user._id,
+            },
+          ],
+          { session },
+        );
         
         await logActivity(
             {
@@ -221,34 +232,44 @@ const transferStock = async (movementData, user, requestInfo, session = null) =>
         await destinationInventory.save({ session });
 
         // Source movement
-        await StockMovement.create([{
-            inventory: sourceInventory._id,
-            branch: sourceInventory.branch,
-            movementType: "TRANSFER",
-            quantity: movementData.quantity,
-            previousStock: sourcePrevious,
-            newStock: sourceInventory.currentStock,
-            fromBranch: sourceInventory.branch,
-            toBranch: movementData.toBranch,
-            reason: "Transfer",
-            remarks: movementData.remarks,
-            performedBy: user._id,
-        }],{ session });
+        await StockMovement.create(
+          [
+            {
+              inventory: sourceInventory._id,
+              branch: sourceInventory.branch,
+              movementType: STOCK_MOVEMENT_TYPES.TRANSFER,
+              quantity: movementData.quantity,
+              previousStock: sourcePrevious,
+              newStock: sourceInventory.currentStock,
+              fromBranch: sourceInventory.branch,
+              toBranch: movementData.toBranch,
+              reason: "Transfer",
+              remarks: movementData.remarks,
+              performedBy: user._id,
+            },
+          ],
+          { session },
+        );
 
         // Destination movement
-        await StockMovement.create([{
-            inventory: destinationInventory._id,
-            branch: destinationInventory.branch,
-            movementType: "TRANSFER",
-            quantity: movementData.quantity,
-            previousStock: destinationPrevious,
-            newStock: destinationInventory.currentStock,
-            fromBranch: sourceInventory.branch,
-            toBranch: movementData.toBranch,
-            reason: "Transfer",
-            remarks: movementData.remarks,
-            performedBy: user._id,
-        }],{session });
+        await StockMovement.create(
+          [
+            {
+              inventory: destinationInventory._id,
+              branch: destinationInventory.branch,
+              movementType: STOCK_MOVEMENT_TYPES.TRANSFER,
+              quantity: movementData.quantity,
+              previousStock: destinationPrevious,
+              newStock: destinationInventory.currentStock,
+              fromBranch: sourceInventory.branch,
+              toBranch: movementData.toBranch,
+              reason: "Transfer",
+              remarks: movementData.remarks,
+              performedBy: user._id,
+            },
+          ],
+          { session },
+        );
 
         await logActivity(
             {
@@ -317,18 +338,22 @@ const adjustStock = async (movementData, user, requestInfo, session = null) => {
         inventory.currentStock = newStock;
         await inventory.save({ session });
 
-        const movement =
-            await StockMovement.create([{
-                inventory: inventory._id,
-                branch: inventory.branch,
-                movementType: "ADJUSTMENT",
-                quantity: Math.abs(movementData.quantity),
-                previousStock,
-                newStock,
-                reason: movementData.reason,
-                remarks: movementData.remarks,
-                performedBy: user._id,
-            }], { session });
+        const movement = await StockMovement.create(
+          [
+            {
+              inventory: inventory._id,
+              branch: inventory.branch,
+              movementType: STOCK_MOVEMENT_TYPES.ADJUSTMENT,
+              quantity: Math.abs(movementData.quantity),
+              previousStock,
+              newStock,
+              reason: movementData.reason,
+              remarks: movementData.remarks,
+              performedBy: user._id,
+            },
+          ],
+          { session },
+        );
         
         await logActivity(
             {

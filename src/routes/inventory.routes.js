@@ -15,6 +15,7 @@ const {
 const protect = require("../middleware/auth.middleware");
 const authorize = require("../middleware/authorize.middleware");
 const validate = require("../middleware/validate");
+const upload = require("../middleware/multer");
 
 const {
     createInventoryValidator,
@@ -41,16 +42,22 @@ inventoryRouter.get(
 
 inventoryRouter.post(
     "/",
-    protect, authorize(PERMISSIONS.INVENTORY_CREATE),
-    createInventoryValidator, validate,
-    createInventory
+    protect,
+    authorize(PERMISSIONS.INVENTORY_CREATE),
+    upload.single("itemImageFile"),
+    createInventoryValidator,
+    validate,
+    createInventory,
 );
 
 inventoryRouter.patch(
     "/:id",
-    protect, authorize(PERMISSIONS.INVENTORY_UPDATE),
-    updateInventoryValidator, validate,
-    updateInventory
+    protect,
+    authorize(PERMISSIONS.INVENTORY_UPDATE),
+    upload.single("itemImageFile"),
+    updateInventoryValidator,
+    validate,
+    updateInventory,
 );
 
 inventoryRouter.patch(

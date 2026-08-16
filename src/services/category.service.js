@@ -141,11 +141,13 @@ const updateCategory = async (categoryId, categoryData, userId, requestInfo) => 
     const { categoryName, categoryCode, description, type } = categoryData;
 
     // Check duplicate category name
+    const escapeRegex = (value) => value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const name = escapeRegex(categoryName.trim());
     if (categoryName) {
         const existingCategory = await Category.findOne({
             _id: { $ne: categoryId },
             categoryName: {
-                $regex: new RegExp(`^${categoryName.trim()}$`, "i"),
+                $regex: new RegExp(`^${name}$`, "i"),
             },
         });
 
@@ -184,6 +186,7 @@ const updateCategory = async (categoryId, categoryData, userId, requestInfo) => 
         category.description = description.trim();
     }
 
+    category.updatedBy = userId;
     await category.save();
 
     await logActivity({
