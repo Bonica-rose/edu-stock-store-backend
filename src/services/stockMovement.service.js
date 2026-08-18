@@ -232,7 +232,7 @@ const transferStock = async (movementData, user, requestInfo, session = null) =>
         await destinationInventory.save({ session });
 
         // Source movement
-        await StockMovement.create(
+        const sourceMovement = await StockMovement.create(
           [
             {
               inventory: sourceInventory._id,
@@ -252,7 +252,7 @@ const transferStock = async (movementData, user, requestInfo, session = null) =>
         );
 
         // Destination movement
-        await StockMovement.create(
+        const destinationMovement = await StockMovement.create(
           [
             {
               inventory: destinationInventory._id,
@@ -272,23 +272,23 @@ const transferStock = async (movementData, user, requestInfo, session = null) =>
         );
 
         await logActivity(
-            {
-                user: user._id,
-                module: ACTIVITY_MODULES.INVENTORY,
-                action: ACTIVITY_ACTIONS.STOCK_TRANSFER,
-                recordId: sourceInventory._id,
-                recordCode: sourceInventory.sku,
-                description:
-                    `Transferred ${quantity} units from ${sourceInventory.sku} to ${destinationInventory.sku}.`,
-                metadata: {
-                    sourceInventory: sourceInventory.sku,
-                    destinationInventory: destinationInventory.sku,
-                    quantity,
-                    stockMovementId: movement[0]._id,
-                },
-                ...requestInfo,
+          {
+            user: user._id,
+            module: ACTIVITY_MODULES.INVENTORY,
+            action: ACTIVITY_ACTIONS.STOCK_TRANSFER,
+            recordId: sourceInventory._id,
+            recordCode: sourceInventory.sku,
+            description: `Transferred ${movementData.quantity} units from ${sourceInventory.sku} to ${destinationInventory.sku}.`,
+            metadata: {
+              sourceInventory: sourceInventory.sku,
+              destinationInventory: destinationInventory.sku,
+              quantity: movementData.quantity,
+              sourceMovementId: sourceMovement[0]._id,
+              destinationMovementId: destinationMovement[0]._id,
             },
-            session
+            ...requestInfo,
+          },
+          session,
         );
 
         if (ownSession) {
@@ -420,10 +420,16 @@ const getStockMovements = async (query, user) => {
     if (startDate || endDate) {
         filter.createdAt = {};
         if (startDate) {
-            filter.createdAt.$gte = new Date(startDate);
+            const start = new Date(startDate);
+            start.setHours(0, 0, 0, 0);
+            filter.createdAt.$gte = start;
         }
+
         if (endDate) {
-            filter.createdAt.$lte = new Date(endDate);
+            const end = new Date(endDate);
+            end.setHours(23, 59, 59, 999);
+
+            filter.createdAt.$lte = end;
         }
     }
 

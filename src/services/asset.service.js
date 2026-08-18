@@ -170,6 +170,7 @@ const createAsset = async (assetData, user, requestInfo) => {
                 remarks: `Asset ${assetCode} created`,
             },
             user,
+            requestInfo,
             session
         );
 
