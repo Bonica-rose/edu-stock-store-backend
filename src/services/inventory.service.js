@@ -1,9 +1,12 @@
+const mongoose = require("mongoose");
+
 const Inventory = require("../models/inventory.model");
 const StockMovement = require("../models/stockMovement.model");
 const Category = require("../models/category.model");
 const Vendor = require("../models/vendor.model");
 const Branch = require("../models/branch.model");
 const ApiError = require("../utils/apiError.util");
+const { getNextSequence } = require("../utils/getNextSequence.util");
 const { ROLES } = require("../constants/roles");
 const { logActivity } = require("./activity.service");
 const {
@@ -24,6 +27,7 @@ const getInventories = async (query, user) => {
     category,
     vendor,
     branch,
+    itemType,
     isActive,
     sortBy = "createdAt",
     sortOrder = "desc",
@@ -48,6 +52,8 @@ const getInventories = async (query, user) => {
   if (vendor) filter.vendor = vendor;
 
   if (branch) filter.branch = branch;
+
+  if (itemType) filter.itemType = itemType;
 
   if (typeof isActive !== "undefined") {
     filter.isActive = isActive === "true";
@@ -76,9 +82,9 @@ const getInventories = async (query, user) => {
 
   const [inventories, total] = await Promise.all([
     Inventory.find(filter)
-      .populate("category", "categoryName")
+      .populate("category", "categoryName categoryCode")
       .populate("vendor", "vendorName")
-      .populate("branch", "branchName")
+      .populate("branch", "branchName branchCode")
       .sort(sort)
       .skip(skip)
       .limit(Number(limit))
@@ -126,127 +132,147 @@ const getInventory = async (inventoryId, user) => {
 };
 
 const createInventory = async (inventoryData, file, user, requestInfo) => {
-  const {
-    itemName,
-    barcode,
-    category,
-    vendor,
-    branch,
-    minimumStock, // set value from settings model
-    unit,
-    purchasePrice,
-    description,
-    itemImage,
-  } = inventoryData;
+  let session;
+  let uploadedImagePublicId = null;
+  try {
+    session = await mongoose.startSession();
+    session.startTransaction();
 
-  // Category
-  const existingCategory = await Category.findOne({
-    _id: category,
-    isActive: true,
-  });
-
-  if (!existingCategory) {
-    throw new ApiError(404, "Category not found.");
-  }
-
-  // Vendor
-  const existingVendor = await Vendor.findOne({
-    _id: vendor,
-    isActive: true,
-  });
-
-  if (!existingVendor) {
-    throw new ApiError(404, "Vendor not found.");
-  }
-
-  // Branch
-  const existingBranch = await Branch.findOne({
-    _id: branch,
-    isActive: true,
-  });
-
-  if (!existingBranch) {
-    throw new ApiError(404, "Branch not found.");
-  }
-
-  // Branch Admin restriction
-  if (user.role === "Branch Admin" && user.branch.toString() !== branch) {
-    throw new ApiError(
-      403,
-      "You can create inventory only for your own branch.",
-    );
-  }
-
-  // Barcode
-  if (barcode) {
-    const existingBarcode = await Inventory.findOne({
+    const {
+      itemName,
       barcode,
-      isDeleted: false,
+      category,
+      vendor,
+      branch,
+      itemType,
+      unit,
+      purchasePrice,
+      description
+    } = inventoryData;
+
+    // Category
+    const existingCategory = await Category.findOne({
+      _id: category,
+      isActive: true,
+    }).session(session);
+
+    if (!existingCategory) {
+      throw new ApiError(404, "Category not found.");
+    }
+
+    // Vendor
+    const existingVendor = await Vendor.findOne({
+      _id: vendor,
+      isActive: true,
+    }).session(session);
+
+    if (!existingVendor) {
+      throw new ApiError(404, "Vendor not found.");
+    }
+
+    // Branch
+    const existingBranch = await Branch.findOne({
+      _id: branch,
+      isActive: true,
+    }).session(session);
+
+    if (!existingBranch) {
+      throw new ApiError(404, "Branch not found.");
+    }
+
+    // Branch Admin restriction
+    if (user.role === "Branch Admin" && user.branch.toString() !== branch) {
+      throw new ApiError(403, "You can create inventory only for your own branch.");
+    }
+
+    // Barcode
+    const normalizedBarcode = barcode?.trim();
+    if (normalizedBarcode) {
+      const existingBarcode = await Inventory.findOne({
+        barcode: normalizedBarcode,
+        isDeleted: false,
+      }).session(session);
+
+      if (existingBarcode) {
+        throw new ApiError(409, "Barcode already exists.");
+      }
+    }
+
+    // Generate SKU
+    const nextNumber = await getNextSequence("inventory", session);
+    const sku = `INV-${String(nextNumber).padStart(6, "0")}`;
+
+    const settings = await getSettings(session);
+    const minimumStock = settings.lowStockQuantityThreshold;
+
+    const inventoryDataToCreate = {
+      sku,
+      itemName,
+      category,
+      vendor,
+      branch,
+      itemType,
+      currentStock: 0,
+      minimumStock,
+      unit,
+      purchasePrice,
+      description,
+      createdBy: user._id,
+    };
+
+    if (normalizedBarcode) {
+      inventoryDataToCreate.barcode = normalizedBarcode;
+    }
+
+    
+    if (file) {
+      const itemPicture = await uploadToCloudinary(
+        file.path,
+        "edu-stock-store/inventories",
+      );
+
+      uploadedImagePublicId = itemPicture.publicId;
+
+      inventoryDataToCreate.itemImage = itemPicture.url;
+      inventoryDataToCreate.itemImagePublicId = itemPicture.publicId;
+    }
+
+    const inventory = await Inventory.create([inventoryDataToCreate], {
+      session,
     });
 
-    if (existingBarcode) {
-      throw new ApiError(409, "Barcode already exists.");
-    }
-  }
+    const createdInventory = inventory[0];
 
-  // Generate SKU
-  const lastInventory = await Inventory.findOne()
-    .sort({ createdAt: -1 })
-    .select("sku");
-
-  let nextNumber = 1;
-  if (lastInventory?.sku) {
-    nextNumber = parseInt(lastInventory.sku.replace("INV-", ""), 10) + 1;
-  }
-
-  const sku = `INV-${String(nextNumber).padStart(6, "0")}`;
-
-  const settings = await getSettings();
-  const minStock = settings.lowStockQuantityThreshold;
-
-  const inventoryDataToCreate = {
-    sku,
-    itemName,
-    category,
-    vendor,
-    branch,
-    currentStock: 0,
-    minimumStock: minStock,
-    unit,
-    purchasePrice,
-    description,
-    itemImage,
-    createdBy: user._id,
-  };
-
-  if (barcode) {
-    inventoryDataToCreate.barcode = barcode;
-  }
-
-  if (file) {
-    const itemPicture = await uploadToCloudinary(
-      file.path,
-      "edu-stock-store/inventories",
+    await logActivity(
+      {
+        user: user._id,
+        module: ACTIVITY_MODULES.INVENTORY,
+        action: ACTIVITY_ACTIONS.CREATE,
+        recordId: createdInventory._id,
+        recordCode: createdInventory.sku,
+        description: `Created inventory ${createdInventory.sku}.`,
+        ...requestInfo,
+      },
+      session,
     );
 
-    inventoryDataToCreate.itemImage = itemPicture.url;
-    inventoryDataToCreate.itemImagePublicId = itemPicture.publicId;
+    await session.commitTransaction();
+
+    return createdInventory;
+  } catch (error) {
+    if (session?.inTransaction()) {
+      await session.abortTransaction();
+    }
+    if (uploadedImagePublicId) {
+      await deleteFromCloudinary(uploadedImagePublicId);
+    }
+    throw error;
+  } finally {
+    if (session) {
+      session.endSession();
+    }
   }
-
-  const inventory = await Inventory.create(inventoryDataToCreate);
-
-  await logActivity({
-    user: user._id,
-    module: ACTIVITY_MODULES.INVENTORY,
-    action: ACTIVITY_ACTIONS.CREATE,
-    recordId: inventory._id,
-    recordCode: inventory.sku,
-    description: `Created inventory ${inventory.sku}.`,
-    ...requestInfo,
-  });
-
-  return inventory;
-};
+}; 
 
 const updateInventory = async (
   inventoryId,
@@ -319,12 +345,21 @@ const updateInventory = async (
     }
   }
 
+  if (inventory.itemType !== inventoryData.itemType && inventory.currentStock > 0) {
+    throw new ApiError(409, "Item type cannot be changed while stock exists");
+  }
+
+  if (inventory.currentStock === 0 && !inventoryData.itemType) {
+    throw new ApiError(409, "Item Type is required when current stock is 0.");
+  }
+
   const updateData = {
     itemName: inventoryData.itemName,
     barcode: inventoryData.barcode,
     category: inventoryData.category,
     vendor: inventoryData.vendor,
     branch: inventoryData.branch,
+    itemType: inventoryData.itemType ?? inventory.itemType,
     minimumStock: inventoryData.minimumStock,
     unit: inventoryData.unit,
     description: inventoryData.description,
@@ -425,10 +460,7 @@ const deleteInventory = async (inventoryId, user, requestInfo) => {
     inventory: inventoryId,
   });
   if (transactionExists) {
-    throw new ApiError(
-      400,
-      "Cannot delete inventory with stock transaction history.",
-    );
+    throw new ApiError(400, "Cannot delete inventory with stock transaction history.");
   }
 
   inventory.isDeleted = true;

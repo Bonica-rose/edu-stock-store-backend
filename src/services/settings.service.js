@@ -3,11 +3,12 @@ const { logActivity } = require("./activity.service");
 const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
 const { uploadToCloudinary, deleteFromCloudinary } = require("../utils/cloudinary");
 
-const getSettings = async () => {
-    let settings = await Setting.findOne();
+const getSettings = async (session = null) => {
+    let settings = await Setting.findOne().session(session);
 
     if (!settings) {
-        settings = await Setting.create({});
+        settings = await Setting.create([{}], { session });
+        settings = settings[0];
     }
 
     return settings;

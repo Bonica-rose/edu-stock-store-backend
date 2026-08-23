@@ -113,41 +113,47 @@ exports.getUsersValidator = [
 ];
 
 exports.updateUserValidator = [
-    body("firstName")
-        .optional()
-        .trim()
-        .isLength({ min: 3, max: 25 }).withMessage("First name must be between 3 and 25 characters")
-        .bail()
-        .isAlpha("en-US").withMessage("First name must contain only letters"),
+  body("firstName")
+    .optional()
+    .trim()
+    .isLength({ min: 3, max: 25 })
+    .withMessage("First name must be between 3 and 25 characters")
+    .bail()
+    .isAlpha("en-US")
+    .withMessage("First name must contain only letters"),
 
-    body("lastName")
-        .optional()
-        .trim()
-        .isLength({ min: 3, max: 50 }).withMessage("Last name must be between 3 and 50 characters")
-        .bail()
-        .matches(/^[a-zA-Z. ]+$/).withMessage('Last name must contain only letters, periods, and spaces'),
+  body("lastName")
+    .optional()
+    .trim()
+    .isLength({ min: 3, max: 50 })
+    .withMessage("Last name must be between 3 and 50 characters")
+    .bail()
+    .matches(/^[a-zA-Z. ]+$/)
+    .withMessage("Last name must contain only letters, periods, and spaces"),
 
-    body("phone")
-        .optional({ nullable: true })
-        .trim()
-        .matches(/^[6-9]\d{9}$/).withMessage("Please provide a valid phone number"),
+  body("phone")
+    .optional({ values: "falsy" })
+    .trim()
+    .matches(/^[6-9]\d{9}$/)
+    .withMessage("Please provide a valid phone number"),
 
-    body("role")
-        .optional()
-        .isIn(ALLOWED_ROLES).withMessage(`Invalid role. Allowed: ${ALLOWED_ROLES.join(", ")}`),
+  body("role")
+    .optional()
+    .isIn(ALLOWED_ROLES)
+    .withMessage(`Invalid role. Allowed: ${ALLOWED_ROLES.join(", ")}`),
 
-    body("branch")
-        .optional()
-        .isMongoId().withMessage("Invalid branch ID"),
+  body("branch").optional().isMongoId().withMessage("Invalid branch ID"),
 
-    body("profileImage")
-        .optional({ nullable: true })
-        .trim()
-        .isURL().withMessage("Invalid profile image URL"),
+  body("profileImage")
+    .optional({ nullable: true })
+    .trim()
+    .isURL()
+    .withMessage("Invalid profile image URL"),
 
-    body("isActive")
-        .optional()
-        .isBoolean().withMessage("isActive must be true or false"),
+  body("isActive")
+    .optional()
+    .isBoolean()
+    .withMessage("isActive must be true or false"),
 ];
 
 exports.updateOwnProfileValidator = [

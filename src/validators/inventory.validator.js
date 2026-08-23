@@ -10,7 +10,7 @@ const createInventoryValidator = [
         .withMessage("Item name cannot exceed 100 characters."),
 
     body("barcode")
-        .optional({ values: 'falsy' })
+        .optional({ values: "falsy" })
         .trim()
         .isLength({ max: 100 })
         .withMessage("Barcode cannot exceed 100 characters."),
@@ -33,11 +33,10 @@ const createInventoryValidator = [
         .custom((value) => mongoose.Types.ObjectId.isValid(value))
         .withMessage("Invalid branch ID."),
 
-    // body("minimumStock")
-    //     .notEmpty()
-    //     .withMessage("Minimum stock is required.")
-    //     .isInt({ min: 0 })
-    //     .withMessage("Minimum stock must be 0 or greater."),
+    body("itemType")
+        .trim()
+        .notEmpty()
+        .withMessage("Item Type is required."),
 
     body("unit")
         .trim()
@@ -53,7 +52,7 @@ const createInventoryValidator = [
         .withMessage("Purchase price must be 0 or greater."),
 
     body("description")
-        .optional({ values: 'falsy' })
+        .optional({ values: "falsy" })
         .trim()
         .isLength({ max: 500 })
         .withMessage("Description cannot exceed 500 characters."),
@@ -76,7 +75,7 @@ const updateInventoryValidator = [
         .withMessage("Item name cannot exceed 100 characters."),
 
     body("barcode")
-        .optional({ values: 'falsy' })
+        .optional({ values: "falsy" })
         .trim()
         .isLength({ max: 100 })
         .withMessage("Barcode cannot exceed 100 characters."),
@@ -95,6 +94,10 @@ const updateInventoryValidator = [
         .optional()
         .custom((value) => mongoose.Types.ObjectId.isValid(value))
         .withMessage("Invalid branch ID."),
+
+    body("itemType")
+        .optional()
+        .trim(),
 
     body("minimumStock")
         .optional()
@@ -115,14 +118,12 @@ const updateInventoryValidator = [
         .withMessage("Purchase price must be 0 or greater."),
 
     body("description")
-        .optional({ values: 'falsy' })
+        .optional({ values: "falsy" })
         .trim()
         .isLength({ max: 500 })
         .withMessage("Description cannot exceed 500 characters."),
 
-    body("itemImage")
-        .optional({ values: 'falsy' })
-        .trim()
+    body("itemImage").optional({ values: "falsy" }).trim(),
 ];
 
 /**

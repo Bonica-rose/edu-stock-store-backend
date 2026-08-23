@@ -19,8 +19,6 @@ const inventorySchema = new mongoose.Schema(
 
     barcode: {
       type: String,
-      unique: true,
-      sparse: true,
       trim: true,
     },
 
@@ -40,6 +38,13 @@ const inventorySchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Branch",
       required: true,
+    },
+
+    itemType: {
+      type: String,
+      enum: ["CONSUMABLE", "ASSET"],
+      required: true,
+      default: "CONSUMABLE",
     },
 
     currentStock: {
@@ -129,5 +134,15 @@ inventorySchema.index({ isActive: 1 });
 inventorySchema.index({ isDeleted: 1 });
 inventorySchema.index({ branch: 1, category: 1 });
 inventorySchema.index({ branch: 1, isActive: 1 });
+inventorySchema.index(
+  { barcode: 1 },
+  {
+    unique: true,
+    partialFilterExpression: {
+      barcode: { $exists: true, $ne: null },
+      isDeleted: false,
+    },
+  },
+);
 
 module.exports = mongoose.model("Inventory", inventorySchema);

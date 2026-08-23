@@ -67,13 +67,13 @@ const stockIn = async (movementData, user, requestInfo, session = null) => {
                 action: ACTIVITY_ACTIONS.STOCK_IN,
                 recordId: inventory._id,
                 recordCode: inventory.sku,
-                description: `Added ${movement.quantity} units to inventory ${inventory.sku}.`,
+                description: `Added ${movement[0].quantity} units to inventory ${inventory.sku}.`,
                 metadata: {
                     stockMovementId: movement[0]._id,
-                    quantity: movement.quantity,
+                    quantity: movement[0].quantity,
                     previousStock,
                     newStock,
-                    reason: movement.reason,
+                    reason: movement[0].reason,
                 },
                 ...requestInfo,
             },
@@ -150,23 +150,23 @@ const stockOut = async (movementData, user, requestInfo, session = null) => {
         );
         
         await logActivity(
-            {
-                user: user._id,
-                module: ACTIVITY_MODULES.INVENTORY,
-                action: ACTIVITY_ACTIONS.STOCK_OUT,
-                recordId: inventory._id,
-                recordCode: inventory.sku,
-                description: `Removed ${movement.quantity} units from inventory ${inventory.sku}.`,
-                metadata: {
-                    stockMovementId: movement[0]._id,
-                    quantity: movement.quantity,
-                    previousStock,
-                    newStock,
-                    reason: movement.reason,
-                },
-                ...requestInfo,
+          {
+            user: user._id,
+            module: ACTIVITY_MODULES.INVENTORY,
+            action: ACTIVITY_ACTIONS.STOCK_OUT,
+            recordId: inventory._id,
+            recordCode: inventory.sku,
+            description: `Removed ${movement[0].quantity} units from inventory ${inventory.sku}.`,
+            metadata: {
+              stockMovementId: movement[0]._id,
+              quantity: movement[0].quantity,
+              previousStock,
+              newStock,
+              reason: movement[0].reason,
             },
-            session
+            ...requestInfo,
+          },
+          session,
         );
 
         if (ownSession) {
@@ -356,23 +356,23 @@ const adjustStock = async (movementData, user, requestInfo, session = null) => {
         );
         
         await logActivity(
-            {
-                user: user._id,
-                module: ACTIVITY_MODULES.INVENTORY,
-                action: ACTIVITY_ACTIONS.STOCK_ADJUSTMENT,
-                recordId: inventory._id,
-                recordCode: inventory.sku,
-                description: `Adjusted inventory ${inventory.sku}.`,
-                metadata: {
-                    stockMovementId: movement[0]._id,
-                    previousStock,
-                    newStock,
-                    adjustment: newStock - previousStock,
-                    reason: movement.reason,
-                },
-                ...requestInfo,
+          {
+            user: user._id,
+            module: ACTIVITY_MODULES.INVENTORY,
+            action: ACTIVITY_ACTIONS.STOCK_ADJUSTMENT,
+            recordId: inventory._id,
+            recordCode: inventory.sku,
+            description: `Adjusted inventory ${inventory.sku}.`,
+            metadata: {
+              stockMovementId: movement[0]._id,
+              previousStock,
+              newStock,
+              adjustment: newStock - previousStock,
+              reason: movement[0].reason,
             },
-            session
+            ...requestInfo,
+          },
+          session,
         );
 
         if (ownSession) {
@@ -470,7 +470,7 @@ const getStockMovements = async (query, user) => {
 const getStockMovement = async (movementId, user) => {
 
     const movement = await StockMovement.findById(movementId)
-        .populate("inventory", "sku itemName")
+        .populate("inventory", "sku itemName unit")
         .populate("branch", "branchName")
         .populate("fromBranch", "branchName")
         .populate("toBranch", "branchName")

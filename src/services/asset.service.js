@@ -1,11 +1,13 @@
 const mongoose = require("mongoose");
 
+const User = require("../models/user.model");
 const Branch = require("../models/branch.model");
 const Inventory = require("../models/inventory.model");
 const Asset = require("../models/asset.model");
 const Maintenance = require("../models/maintenance.model");
 const stockMovementService = require("./stockMovement.service");
 const ApiError = require("../utils/apiError.util");
+const { getNextSequence } = require("../utils/getNextSequence.util");
 const { ROLES } = require("../constants/roles");
 const { STOCK_MOVEMENT_REASONS } = require("../constants/stockMovement.constants");
 const { ASSET_STATUS } = require("../constants/asset.constants");
@@ -61,7 +63,7 @@ const getAssets = async (query, user) => {
 
     const [assets, total] = await Promise.all([
         Asset.find(filter)
-            .populate("inventory", "sku itemName")
+            .populate("inventory", "sku itemName category unit")
             .populate("branch", "branchName")
             .populate("assignedTo", "firstName lastName email")
             .sort({createdAt: -1 })
@@ -85,15 +87,28 @@ const getAssets = async (query, user) => {
 
 const getAsset = async (assetId, user) => {
 
-    const asset = await Asset.findOne({_id: assetId, isDeleted: false })
-        .populate("inventory", "sku itemName unit purchasePrice itemImage")
-        .populate("branch", "branchName")
-        .populate("assignedTo", "firstName lastName email")
-        .populate("assignmentHistory.assignedTo", "firstName lastName")
-        .populate("assignmentHistory.assignedBy", "firstName lastName")
-        .populate("assignmentHistory.returnedBy", "firstName lastName")
-        .populate("createdBy", "firstName lastName")
-        .populate("updatedBy", "firstName lastName");
+    const asset = await Asset.findOne({ _id: assetId, isDeleted: false })
+      .populate({
+        path: "inventory",
+        select: "sku itemName category vendor unit purchasePrice itemImage",
+        populate: [
+          {
+            path: "category",
+            select: "categoryName",
+          },
+          {
+            path: "vendor",
+            select: "vendorName",
+          },
+        ],
+      })
+      .populate("branch", "branchName")
+      .populate("assignedTo", "firstName lastName email employeeId")
+      .populate("assignmentHistory.assignedTo", "firstName lastName")
+      .populate("assignmentHistory.assignedBy", "firstName lastName")
+      .populate("assignmentHistory.returnedBy", "firstName lastName")
+      .populate("createdBy", "firstName lastName")
+      .populate("updatedBy", "firstName lastName");
 
     if (!asset) {
         throw new ApiError(404, "Asset not found.");
@@ -110,17 +125,8 @@ const getAsset = async (assetId, user) => {
     return asset;
 };
 
-const generateAssetCode = async () => {
-    const latestAsset = await Asset.findOne()
-        .sort({ createdAt: -1 })
-        .select("assetCode");
-
-    let nextNumber = 1;
-
-    if (latestAsset?.assetCode) {
-        const currentNumber = parseInt(latestAsset.assetCode.replace("AST-", ""), 10);
-        nextNumber = currentNumber + 1;
-    }
+const generateAssetCode = async (session = null) => {
+    const nextNumber = await getNextSequence("asset", session);
 
     return `AST-${String(nextNumber).padStart(6, "0")}`;
 };
@@ -142,8 +148,12 @@ const createAsset = async (assetData, user, requestInfo) => {
             throw new ApiError(404, "Inventory not found.");
         }
 
+        if (inventory.itemType !== "ASSET") {
+            throw new ApiError(409, "Assets can only be created for asset-type inventory items");
+        }
+
         if (inventory.currentStock < 1) {
-            throw new ApiError(400, "No stock available to create an asset.");
+            throw new ApiError(409, "No stock available to create an asset.");
         }
 
         // Branch restriction
@@ -151,7 +161,7 @@ const createAsset = async (assetData, user, requestInfo) => {
             throw new ApiError(403, "Not authorized for this branch." );
         }
 
-        const assetCode = await generateAssetCode();
+        const assetCode = await generateAssetCode(session);
 
         const asset = await Asset.create([{
             assetCode,
@@ -319,9 +329,9 @@ const assignAsset = async (assetId, assignmentData, user, requestInfo) => {
         throw new ApiError(400, "Only available assets can be assigned.");
     }
 
-    const assignedUser = await User.findOne({ _id: assignmentData.assignedTo, isDeleted: false, isActive: true });
-    if (!assignedUser) {
-        throw new ApiError(404, "Assigned user not found.");
+    const assignedUser = await User.findOne({ _id: assignmentData.assignedTo});
+    if (!assignedUser || !assignedUser.isActive) {
+        throw new ApiError(404, "Assigned user is not active or does not exist.");
     }
 
     // Optional: Restrict assignment to same branch
@@ -355,7 +365,7 @@ const assignAsset = async (assetId, assignmentData, user, requestInfo) => {
         metadata: {
             assignedTo: assignedUser._id,
             assignedEmployeeId: assignedUser.employeeId,
-            assignedDate: assignmentData.assignedDate,
+            assignedDate,
         },
         ...requestInfo,
     });
@@ -389,9 +399,10 @@ const returnAsset = async (assetId, returnData, user, requestInfo) => {
     }
 
     // Find the latest open assignment
-    const history = [...asset.assignmentHistory]
+    const history = asset.assignmentHistory
+        .slice()
         .reverse()
-        .find(entry => !entry.returnedDate);
+        .find((entry) => !entry.returnedDate);
 
     if (!history) {
         throw new ApiError(400, "Assignment history not found.");
@@ -419,8 +430,8 @@ const returnAsset = async (assetId, returnData, user, requestInfo) => {
         recordCode: asset.assetCode,
         description: `Returned asset ${asset.assetCode}.`,
         metadata: {
-            returnedBy: asset.assignmentHistory.returnedBy,
-            returnedDate: asset.assignmentHistory.returnedDate,
+            returnedBy: history.returnedBy,
+            returnedDate: history.returnedDate,
             assetCondition: asset.condition,
         },
         ...requestInfo,

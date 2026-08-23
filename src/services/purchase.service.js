@@ -6,6 +6,7 @@ const Branch = require("../models/branch.model");
 const Inventory = require("../models/inventory.model");
 const stockMovementService = require("./stockMovement.service");
 const ApiError = require("../utils/apiError.util");
+const { getNextSequence } = require("../utils/getNextSequence.util");
 const { ROLES } = require("../constants/roles");
 const { STOCK_MOVEMENT_REASONS } = require("../constants/stockMovement.constants");
 const { logActivity } = require("./activity.service");
@@ -66,17 +67,8 @@ const createPurchase = async (purchaseData, user, requestInfo) => {
         }
 
         // Generate Purchase Number
-        const lastPurchase = await Purchase
-            .findOne()
-            .sort({ createdAt: -1 })
-            .session(session);
-
-        let purchaseNo = "PO-000001";
-
-        if (lastPurchase?.purchaseNo) {
-            const lastNumber = parseInt(lastPurchase.purchaseNo.replace("PO-", ""), 10);
-            purchaseNo = `PO-${String(lastNumber + 1).padStart(6, "0")}`;
-        }
+        const nextNumber = await getNextSequence("purchase", session);
+        const purchaseNo = `PO-${String(nextNumber).padStart(6, "0")}`;        
 
         // Create Purchase
         const purchase = await Purchase.create([{
@@ -212,7 +204,7 @@ const getPurchase = async (purchaseId, user) => {
     const purchase = await Purchase.findById(purchaseId)
         .populate("vendor", "vendorName")
         .populate("branch", "branchName")
-        .populate("items.inventory", "sku itemName")
+        .populate("items.inventory", "sku itemName unit")
         .populate("createdBy", "firstName lastName")
         .populate("updatedBy", "firstName lastName");
 
