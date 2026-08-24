@@ -81,10 +81,14 @@ const getMaintenances = async (query) => {
     let maintenanceQuery = Maintenance.find(filter)
         .populate({
             path: "asset",
-            select: "assetId assetName branch",
+            select: "assetCode assetCode serialNumber inventory branch condition",
             populate: {
                 path: "branch",
-                select: "branchName",
+                select: "branchName branchCode",
+            },
+            populate: {
+                path: "inventory",
+                select: "itemName sku",
             },
         })
         .populate("reportedBy", "firstName lastName email")
@@ -138,21 +142,25 @@ const getMaintenances = async (query) => {
 
 const getMaintenance = async (id) => {
     const maintenance = await Maintenance.findOne({
-        _id: id,
-        isDeleted: false,
+      _id: id,
+      isDeleted: false,
     })
-        .populate({
-            path: "asset",
-            select: "assetId assetName assetCode assetType serialNumber branch condition",
-            populate: {
-                path: "branch",
-                select: "branchName branchCode",
-            },
-        })
-        .populate("reportedBy", "firstName lastName email")
-        .populate("assignedBy", "firstName lastName email")
-        .populate("assignedTo", "firstName lastName email")
-        .populate("vendor", "vendorName vendorCode contactPerson phone email");
+      .populate({
+        path: "asset",
+        select: "assetCode assetCode serialNumber inventory branch condition",
+        populate: {
+          path: "branch",
+          select: "branchName branchCode",
+        },
+        populate: {
+          path: "inventory",
+          select: "itemName sku",
+        },
+      })
+      .populate("reportedBy", "firstName lastName email")
+      .populate("assignedBy", "firstName lastName email")
+      .populate("assignedTo", "firstName lastName email")
+      .populate("vendor", "vendorName vendorCode contactPerson phone email");
 
     if (!maintenance) {
         throw new ApiError(404, "Maintenance record not found.");
@@ -192,11 +200,14 @@ const createMaintenance = async (maintenanceData, userId, requestInfo) => {
     // Generate Maintenance ID
     const maintenanceId = await generateMaintenanceId();
 
+    const reportedDate = new Date();
+
     // Create maintenance record
     const maintenance = await Maintenance.create({
         ...maintenanceData,
         maintenanceId,
         reportedBy: userId,
+        reportedDate,
         status: MAINTENANCE_STATUS.PENDING,
     });
 
