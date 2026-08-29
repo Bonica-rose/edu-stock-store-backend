@@ -192,6 +192,7 @@ const createAsset = async (assetData, user, requestInfo) => {
             recordCode: asset[0].assetCode,
             description: `Created asset ${asset[0].assetCode}.`,
             ...requestInfo,
+            branch: asset[0].branch,
         });
 
         await session.commitTransaction();
@@ -230,6 +231,7 @@ const updateAsset = async (assetId, assetData, user, requestInfo) => {
         recordCode: asset.assetCode,
         description: `Updated asset ${asset.assetCode}.`,
         ...requestInfo,
+        branch: asset.branch,
     });
 
     return asset;
@@ -263,6 +265,7 @@ const changeAssetStatus = async (assetId, user, requestInfo) => {
             isActive: asset.isActive,
         },
         ...requestInfo,
+        branch: asset.branch,
     });
 
     return asset;
@@ -301,6 +304,7 @@ const deleteAsset = async (assetId, user, requestInfo) => {
         recordCode: asset.assetCode,
         description: `Deleted asset ${asset.assetCode}.`,
         ...requestInfo,
+        branch: asset.branch,
     });    
 
     return;
@@ -368,6 +372,7 @@ const assignAsset = async (assetId, assignmentData, user, requestInfo) => {
             assignedDate,
         },
         ...requestInfo,
+        branch: asset.branch,
     });
 
     await asset.save();
@@ -435,6 +440,7 @@ const returnAsset = async (assetId, returnData, user, requestInfo) => {
             assetCondition: asset.condition,
         },
         ...requestInfo,
+        branch: asset.branch,
     });
 
     return asset;

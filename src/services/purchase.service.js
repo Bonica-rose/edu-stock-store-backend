@@ -108,8 +108,9 @@ const createPurchase = async (purchaseData, user, requestInfo) => {
                 recordCode: purchase[0].purchaseNo,
                 description: `Created purchase ${purchase[0].purchaseNo}.`,
                 ...requestInfo,
+                branch: purchase[0].branch,
             },
-            session
+            session,
         );
 
         await session.commitTransaction();

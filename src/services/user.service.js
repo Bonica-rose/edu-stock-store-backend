@@ -13,165 +13,164 @@ const { uploadToCloudinary, deleteFromCloudinary } = require("../utils/cloudinar
 
 
 exports.createUser = async (userData, loggedInUser, requestInfo) => {
-  const {
-    firstName,
-    lastName,
-    email,
-    password,
-    phone,
-    role,
-    branch,
-    profileImage,
-  } = userData;
-
-  // Validate role
-  if (!Object.values(ROLES).includes(role)) {
-    throw new ApiError(400, "Invalid role.");
-  }
-
-  // Only Super Admin & Branch Admin can create users
-  if (![ROLES.SUPER_ADMIN, ROLES.BRANCH_ADMIN].includes(loggedInUser.role)) {
-    throw new ApiError(403, "You are not allowed to create users.");
-  }
-
-  // Branch Admin restrictions
-  if (loggedInUser.role === ROLES.BRANCH_ADMIN) {
-    // Can create users only in own branch
-    if (branch.toString() !== loggedInUser.branch.toString()) {
-      throw new ApiError(403, "Branch Admin can create users only in their own branch.");
-    }
-
-    // Can create only allowed roles
-    if (!BRANCH_ADMIN_ALLOWED_USER_ROLES.includes(role)) {
-      throw new ApiError(403, "Branch Admin can create only Inventory Staff, Maintenance Staff and Auditor.");
-    }
-  }
-
-  // Validate branch
-  const branchExists = await Branch.exists({ _id: branch, isActive: true });
-  if (!branchExists) {
-    throw new ApiError(404, "Branch not found");
-  }
-
-  // Only one Super Admin in the system
-  if (role === ROLES.SUPER_ADMIN) {
-    const existingSuperAdmin = await User.findOne({
-      role: ROLES.SUPER_ADMIN,
-      isActive: true,
-      deletedAt: null,
-    });
-
-    if (existingSuperAdmin) {
-      throw new ApiError(409, "A Super Admin already exists.");
-    }
-  }
-
-  // Only one Branch Admin per branch
-  if (role === ROLES.BRANCH_ADMIN) {
-    const existingBranchAdmin = await User.findOne({
-      role: ROLES.BRANCH_ADMIN,
-      branch,
-      isActive: true,
-      deletedAt: null,
-    });
-
-    if (existingBranchAdmin) {
-      throw new ApiError(409, "This branch already has a Branch Admin.");
-    }
-  }
-
-  // Email uniqueness
-  const existingUser = await User.findOne({
-    email: email.toLowerCase().trim(),
-    deletedAt: null,
-  });
-  if (existingUser) {
-    throw new ApiError(409, "Email already exists");
-  }
-
-  // Identical First name & Last name
-  if (firstName.trim().toLowerCase() === lastName.trim().toLowerCase()) {
-    throw new ApiError(400, "Last name cannot be identical to first name");
-  }
-
-  // Hash password
-  const hashedPassword = await hashPassword(password);
-
-  // Transaction starts here
-  const session = await mongoose.startSession();
-  let user;
-  try {
-    session.startTransaction();
-
-    // Generate Employee ID
-    const employeeId = await generateEmployeeId(role, session);
-
-    // Create user
-    user = await User.create(
-      [
-        {
-          firstName: firstName.trim(),
-          lastName: lastName.trim(),
-          employeeId,
-          email: email.trim().toLowerCase(),
-          password: hashedPassword,
-          phone: phone?.trim() || null,
-          role,
-          branch,
-          profileImage: profileImage ?? null,
-
-          isActive: true,
-          mustChangePassword: true,
-
-          createdBy: loggedInUser._id,
-          updatedBy: loggedInUser._id,
-        },
-      ],
-      { session },
-    );
-    user = user[0];
-
-    // Update(Synchronize) Branch Manager
-    if (role === ROLES.BRANCH_ADMIN) {
-      await Branch.findByIdAndUpdate(
+    const {
+        firstName,
+        lastName,
+        email,
+        password,
+        phone,
+        role,
         branch,
-        {
-          manager: user._id,
-        },
-        { session },
-      );
+        profileImage,
+    } = userData;
+
+    // Validate role
+    if (!Object.values(ROLES).includes(role)) {
+        throw new ApiError(400, "Invalid role.");
     }
 
-    await session.commitTransaction();
-  } catch (error) {
-    await session.abortTransaction();
-    throw error;
-  } finally {
-    session.endSession();
-  }
+    // Only Super Admin & Branch Admin can create users
+    if (![ROLES.SUPER_ADMIN, ROLES.BRANCH_ADMIN].includes(loggedInUser.role)) {
+        throw new ApiError(403, "You are not allowed to create users.");
+    }
 
-  await user.populate([
-    { path: "branch", select: "branchCode branchName" },
-    { path: "createdBy", select: "employeeId firstName lastName" },
-    { path: "updatedBy", select: "employeeId firstName lastName" },
-  ]);
+    // Branch Admin restrictions
+    if (loggedInUser.role === ROLES.BRANCH_ADMIN) {
+        // Can create users only in own branch
+        if (branch.toString() !== loggedInUser.branch.toString()) {
+            throw new ApiError(403, "Branch Admin can create users only in their own branch.");
+        }
 
-  try {
-    await logActivity({
-      user: loggedInUser._id,
-      module: ACTIVITY_MODULES.USER,
-      action: ACTIVITY_ACTIONS.CREATE,
-      recordId: user._id,
-      recordCode: user.employeeId,
-      description: `Created user ${user.firstName} ${user.lastName}.`,
-      ...requestInfo,
+        // Can create only allowed roles
+        if (!BRANCH_ADMIN_ALLOWED_USER_ROLES.includes(role)) {
+            throw new ApiError(403, "Branch Admin can create only Inventory Staff, Maintenance Staff and Auditor.");
+        }
+    }
+
+    // Validate branch
+    const branchExists = await Branch.exists({ _id: branch, isActive: true });
+    if (!branchExists) {
+        throw new ApiError(404, "Branch not found");
+    }
+
+    // Only one Super Admin in the system
+    if (role === ROLES.SUPER_ADMIN) {
+        const existingSuperAdmin = await User.findOne({
+            role: ROLES.SUPER_ADMIN,
+            isActive: true,
+            deletedAt: null,
+        });
+
+        if (existingSuperAdmin) {
+            throw new ApiError(409, "A Super Admin already exists.");
+        }
+    }
+
+    // Only one Branch Admin per branch
+    if (role === ROLES.BRANCH_ADMIN) {
+            const existingBranchAdmin = await User.findOne({
+            role: ROLES.BRANCH_ADMIN,
+            branch,
+            isActive: true,
+            deletedAt: null,
+        });
+
+        if (existingBranchAdmin) {
+            throw new ApiError(409, "This branch already has a Branch Admin.");
+        }
+    }
+
+    // Email uniqueness
+    const existingUser = await User.findOne({
+        email: email.toLowerCase().trim(),
+        deletedAt: null,
     });
-  } catch (err) {
-    console.error("Activity logging failed:", err);
-  }
+    if (existingUser) {
+        throw new ApiError(409, "Email already exists");
+    }
 
-  return mapUser(user);
-};;
+    // Identical First name & Last name
+    if (firstName.trim().toLowerCase() === lastName.trim().toLowerCase()) {
+        throw new ApiError(400, "Last name cannot be identical to first name");
+    }
+
+    // Hash password
+    const hashedPassword = await hashPassword(password);
+
+    // Transaction starts here
+    const session = await mongoose.startSession();
+    let user;
+    try {
+        session.startTransaction();
+
+        // Generate Employee ID
+        const employeeId = await generateEmployeeId(role, session);
+
+        // Create user
+        user = await User.create(
+        [
+            {
+                firstName: firstName.trim(),
+                lastName: lastName.trim(),
+                employeeId,
+                email: email.trim().toLowerCase(),
+                password: hashedPassword,
+                phone: phone?.trim() || null,
+                role,
+                branch,
+                profileImage: profileImage ?? null,
+
+                isActive: true,
+                mustChangePassword: true,
+
+                createdBy: loggedInUser._id,
+                updatedBy: loggedInUser._id,
+            },
+        ],{ session });
+        user = user[0];
+
+        // Update(Synchronize) Branch Manager
+        if (role === ROLES.BRANCH_ADMIN) {
+            await Branch.findByIdAndUpdate(
+                branch,
+                {
+                    manager: user._id,
+                },
+                { session },
+            );
+        }
+
+        await session.commitTransaction();
+    } catch (error) {
+        await session.abortTransaction();
+        throw error;
+    } finally {
+        session.endSession();
+    }
+
+    await user.populate([
+        { path: "branch", select: "branchCode branchName" },
+        { path: "createdBy", select: "employeeId firstName lastName" },
+        { path: "updatedBy", select: "employeeId firstName lastName" },
+    ]);
+
+    try {
+        await logActivity({
+            user: loggedInUser._id,
+            module: ACTIVITY_MODULES.USER,
+            action: ACTIVITY_ACTIONS.CREATE,
+            recordId: user._id,
+            recordCode: user.employeeId,
+            description: `Created user ${user.firstName} ${user.lastName}.`,
+            ...requestInfo,
+            branch: user.branch,
+        });
+    } catch (err) {
+        console.error("Activity logging failed:", err);
+    }
+
+    return mapUser(user);
+};
 
 exports.getUsers = async (query, loggedInUser) => {
 
@@ -489,6 +488,7 @@ exports.updateUser = async (userId, userData, loggedInUser, requestInfo) => {
             recordCode: user.employeeId,
             description: `Updated user ${user.firstName} ${user.lastName}.`,
             ...requestInfo,
+            branch: user.branch,
         });
 
         return mapUser(user);
@@ -649,6 +649,7 @@ exports.changeUserStatus = async (userId, isActive, loggedInUser, requestInfo) =
                 isActive: user.isActive,
             },
             ...requestInfo,
+            branch: user.branch,
         });
 
         return mapUser(user);
@@ -662,42 +663,43 @@ exports.changeUserStatus = async (userId, isActive, loggedInUser, requestInfo) =
 };
 
 exports.deleteUser = async (userId, loggedInUser, requestInfo) => {
-  const user = await User.findOne({ _id: userId, deletedAt: null });
-  if (!user) {
-    throw new ApiError(404, "User not found");
-  }
+    const user = await User.findOne({ _id: userId, deletedAt: null });
+    if (!user) {
+        throw new ApiError(404, "User not found");
+    }
 
-  // Prevent self deletion
-  if (user._id.toString() === loggedInUser._id.toString()) {
-    throw new ApiError(400, "You cannot delete your own account.");
-  }
+    // Prevent self deletion
+    if (user._id.toString() === loggedInUser._id.toString()) {
+        throw new ApiError(400, "You cannot delete your own account.");
+    }
 
-  if (loggedInUser.role !== ROLES.SUPER_ADMIN) {
-    throw new ApiError(403, "Only Super Admin can delete users.");
-  }
+    if (loggedInUser.role !== ROLES.SUPER_ADMIN) {
+        throw new ApiError(403, "Only Super Admin can delete users.");
+    }
 
-  user.deletedAt = new Date();
-  user.isActive = false;
-  user.isDeleted = true;
-  user.updatedBy = loggedInUser._id;
-  await user.save();
+    user.deletedAt = new Date();
+    user.isActive = false;
+    user.isDeleted = true;
+    user.updatedBy = loggedInUser._id;
+    await user.save();
 
-  // synchronize Branch.manager when deleting a Branch Admin.
-  if (user.role === ROLES.BRANCH_ADMIN) {
-    await Branch.findByIdAndUpdate(user.branch, {
-      manager: null,
+    // synchronize Branch.manager when deleting a Branch Admin.
+    if (user.role === ROLES.BRANCH_ADMIN) {
+        await Branch.findByIdAndUpdate(user.branch, {
+        manager: null,
+        });
+    }
+
+    await logActivity({
+        user: loggedInUser._id,
+        module: ACTIVITY_MODULES.USER,
+        action: ACTIVITY_ACTIONS.DELETE,
+        recordId: user._id,
+        recordCode: user.employeeId,
+        description: `Deleted user ${user.firstName} ${user.lastName}.`,
+        ...requestInfo,
+        branch: user.branch,
     });
-  }
 
-  await logActivity({
-    user: loggedInUser._id,
-    module: ACTIVITY_MODULES.USER,
-    action: ACTIVITY_ACTIONS.DELETE,
-    recordId: user._id,
-    recordCode: user.employeeId,
-    description: `Deleted user ${user.firstName} ${user.lastName}.`,
-    ...requestInfo,
-  });
-
-  return;
+    return;
 };

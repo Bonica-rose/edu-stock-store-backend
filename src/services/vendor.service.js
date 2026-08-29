@@ -139,6 +139,7 @@ const createVendor = async (vendorData, userId, requestInfo) => {
         recordCode: vendor.vendorCode,
         description: `Created vendor ${vendor.vendorName}.`,
         ...requestInfo,
+        branch: null,
     });
 
     return await Vendor.findById(vendor._id)
@@ -260,6 +261,7 @@ const updateVendor = async (vendorId, vendorData, userId, requestInfo) => {
         recordCode: vendor.vendorCode,
         description: `Updated vendor ${vendor.vendorName}.`,
         ...requestInfo,
+        branch: null,
     });
 
     return await Vendor.findById(vendor._id)
@@ -293,6 +295,7 @@ const changeVendorStatus = async (vendorId, userId, requestInfo) => {
             isActive: vendor.isActive,
         },
         ...requestInfo,
+        branch: null,
     });
 
     return await Vendor.findById(vendor._id)
@@ -325,6 +328,7 @@ const deleteVendor = async (vendorId, userId, requestInfo) => {
         recordCode: vendor.vendorCode,
         description: `Deleted vendor ${vendor.vendorName}.`,
         ...requestInfo,
+        branch: null,
     });
 
     return;

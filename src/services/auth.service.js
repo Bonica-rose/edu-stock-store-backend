@@ -109,6 +109,9 @@ const login = async ({ email, password }, requestInfo) => {
     delete safeUser.password;
     delete safeUser.__v;    
 
+    const permissionMappedUser = mapUser(safeUser);
+    permissionMappedUser.permissions = ROLE_PERMISSIONS[permissionMappedUser.role] ?? [];
+
     await logActivity({
         user: safeUser._id,
         module: ACTIVITY_MODULES.AUTH,
@@ -117,11 +120,12 @@ const login = async ({ email, password }, requestInfo) => {
         recordCode: safeUser.employeeId,
         description: `${safeUser.firstName} ${safeUser.lastName} logged in.`,
         ...requestInfo,
+        branch: safeUser.branch,
     });
 
     return {
         token,
-        user: mapUser(safeUser),        
+        user: permissionMappedUser,
     };
 };
 
@@ -134,6 +138,7 @@ const logout = async (user, requestInfo) => {
         recordCode: user.employeeId,
         description: `${user.firstName} ${user.lastName} logged out.`,
         ...requestInfo,
+        branch: user.branch,
     });
 
     return true;
@@ -186,6 +191,7 @@ const changePassword = async (id, currentPassword, newPassword, requestInfo) => 
         recordCode: user.employeeId,
         description: `Changed password for${user.firstName} ${user.lastName}.`,
         ...requestInfo,
+        branch: user.branch,
     });
 };
 

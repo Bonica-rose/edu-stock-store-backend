@@ -47,6 +47,7 @@ const createBranch = async (branchData, userId, requestInfo) => {
         recordCode: branch.branchCode,
         description: `Created branch ${branch.branchName}.`,
         ...requestInfo,
+        branch: null,
     });
 
     return branch;
@@ -228,6 +229,7 @@ const updateBranch = async (branchId, branchData, userId, requestInfo) => {
         recordCode: branch.branchCode,
         description: `Updated branch ${branch.branchName}.`,
         ...requestInfo,
+        branch: null,
     });
 
     return await Branch.findById(branch._id)
@@ -286,6 +288,7 @@ const changeBranchStatus = async (branchId, isActive, userId, requestInfo) => {
             isActive: branch.isActive,
         },
         ...requestInfo,
+        branch: null,
     });
 
     return await Branch.findById(branch._id)

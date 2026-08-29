@@ -45,6 +45,7 @@ const updateSettings = async (settingsData, file, userId, requestInfo) => {
         recordCode: "SYSTEM_SETTINGS",
         description: "Updated system settings.",
         ...requestInfo,
+        branch: null,
     });
 
     return settings;

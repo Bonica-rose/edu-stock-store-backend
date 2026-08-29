@@ -13,6 +13,13 @@ const activitySchema = new mongoose.Schema(
             required: true,
         },
 
+        branch: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Branch",
+            default: null,
+            index: true,
+        },
+
         module: {
             type: String,
             enum: Object.values(ACTIVITY_MODULES),
@@ -62,7 +69,7 @@ const activitySchema = new mongoose.Schema(
     {
         timestamps: true,
         versionKey: false,
-    }
+    },
 );
 
 activitySchema.index({ module: 1 });

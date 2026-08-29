@@ -76,6 +76,7 @@ const stockIn = async (movementData, user, requestInfo, session = null) => {
                     reason: movement[0].reason,
                 },
                 ...requestInfo,
+                branch: movement[0].branch,
             },
             session,
         );
@@ -133,40 +134,41 @@ const stockOut = async (movementData, user, requestInfo, session = null) => {
         await inventory.save({ session });
 
         const movement = await StockMovement.create(
-          [
-            {
-              inventory: inventory._id,
-              branch: inventory.branch,
-              movementType: STOCK_MOVEMENT_TYPES.STOCK_OUT,
-              quantity: movementData.quantity,
-              previousStock,
-              newStock,
-              reason: movementData.reason,
-              remarks: movementData.remarks,
-              performedBy: user._id,
-            },
-          ],
-          { session },
+            [
+                {
+                inventory: inventory._id,
+                branch: inventory.branch,
+                movementType: STOCK_MOVEMENT_TYPES.STOCK_OUT,
+                quantity: movementData.quantity,
+                previousStock,
+                newStock,
+                reason: movementData.reason,
+                remarks: movementData.remarks,
+                performedBy: user._id,
+                },
+            ],
+            { session },
         );
         
         await logActivity(
-          {
-            user: user._id,
-            module: ACTIVITY_MODULES.INVENTORY,
-            action: ACTIVITY_ACTIONS.STOCK_OUT,
-            recordId: inventory._id,
-            recordCode: inventory.sku,
-            description: `Removed ${movement[0].quantity} units from inventory ${inventory.sku}.`,
-            metadata: {
-              stockMovementId: movement[0]._id,
-              quantity: movement[0].quantity,
-              previousStock,
-              newStock,
-              reason: movement[0].reason,
+            {
+                user: user._id,
+                module: ACTIVITY_MODULES.INVENTORY,
+                action: ACTIVITY_ACTIONS.STOCK_OUT,
+                recordId: inventory._id,
+                recordCode: inventory.sku,
+                description: `Removed ${movement[0].quantity} units from inventory ${inventory.sku}.`,
+                metadata: {
+                    stockMovementId: movement[0]._id,
+                    quantity: movement[0].quantity,
+                    previousStock,
+                    newStock,
+                    reason: movement[0].reason,
+                },
+                ...requestInfo,
+                branch: movement[0].branch,
             },
-            ...requestInfo,
-          },
-          session,
+            session,
         );
 
         if (ownSession) {
@@ -233,62 +235,63 @@ const transferStock = async (movementData, user, requestInfo, session = null) =>
 
         // Source movement
         const sourceMovement = await StockMovement.create(
-          [
-            {
-              inventory: sourceInventory._id,
-              branch: sourceInventory.branch,
-              movementType: STOCK_MOVEMENT_TYPES.TRANSFER,
-              quantity: movementData.quantity,
-              previousStock: sourcePrevious,
-              newStock: sourceInventory.currentStock,
-              fromBranch: sourceInventory.branch,
-              toBranch: movementData.toBranch,
-              reason: "Transfer",
-              remarks: movementData.remarks,
-              performedBy: user._id,
-            },
-          ],
-          { session },
+            [
+                {
+                inventory: sourceInventory._id,
+                branch: sourceInventory.branch,
+                movementType: STOCK_MOVEMENT_TYPES.TRANSFER,
+                quantity: movementData.quantity,
+                previousStock: sourcePrevious,
+                newStock: sourceInventory.currentStock,
+                fromBranch: sourceInventory.branch,
+                toBranch: movementData.toBranch,
+                reason: "Transfer",
+                remarks: movementData.remarks,
+                performedBy: user._id,
+                },
+            ],
+            { session },
         );
 
         // Destination movement
         const destinationMovement = await StockMovement.create(
-          [
-            {
-              inventory: destinationInventory._id,
-              branch: destinationInventory.branch,
-              movementType: STOCK_MOVEMENT_TYPES.TRANSFER,
-              quantity: movementData.quantity,
-              previousStock: destinationPrevious,
-              newStock: destinationInventory.currentStock,
-              fromBranch: sourceInventory.branch,
-              toBranch: movementData.toBranch,
-              reason: "Transfer",
-              remarks: movementData.remarks,
-              performedBy: user._id,
-            },
-          ],
-          { session },
+            [
+                {
+                inventory: destinationInventory._id,
+                branch: destinationInventory.branch,
+                movementType: STOCK_MOVEMENT_TYPES.TRANSFER,
+                quantity: movementData.quantity,
+                previousStock: destinationPrevious,
+                newStock: destinationInventory.currentStock,
+                fromBranch: sourceInventory.branch,
+                toBranch: movementData.toBranch,
+                reason: "Transfer",
+                remarks: movementData.remarks,
+                performedBy: user._id,
+                },
+            ],
+            { session },
         );
 
         await logActivity(
-          {
-            user: user._id,
-            module: ACTIVITY_MODULES.INVENTORY,
-            action: ACTIVITY_ACTIONS.STOCK_TRANSFER,
-            recordId: sourceInventory._id,
-            recordCode: sourceInventory.sku,
-            description: `Transferred ${movementData.quantity} units from ${sourceInventory.sku} to ${destinationInventory.sku}.`,
-            metadata: {
-              sourceInventory: sourceInventory.sku,
-              destinationInventory: destinationInventory.sku,
-              quantity: movementData.quantity,
-              sourceMovementId: sourceMovement[0]._id,
-              destinationMovementId: destinationMovement[0]._id,
+            {
+                user: user._id,
+                module: ACTIVITY_MODULES.INVENTORY,
+                action: ACTIVITY_ACTIONS.STOCK_TRANSFER,
+                recordId: sourceInventory._id,
+                recordCode: sourceInventory.sku,
+                description: `Transferred ${movementData.quantity} units from ${sourceInventory.sku} to ${destinationInventory.sku}.`,
+                metadata: {
+                    sourceInventory: sourceInventory.sku,
+                    destinationInventory: destinationInventory.sku,
+                    quantity: movementData.quantity,
+                    sourceMovementId: sourceMovement[0]._id,
+                    destinationMovementId: destinationMovement[0]._id,
+                },
+                ...requestInfo,
+                branch: sourceMovement[0].branch,
             },
-            ...requestInfo,
-          },
-          session,
+            session,
         );
 
         if (ownSession) {
@@ -339,40 +342,41 @@ const adjustStock = async (movementData, user, requestInfo, session = null) => {
         await inventory.save({ session });
 
         const movement = await StockMovement.create(
-          [
-            {
-              inventory: inventory._id,
-              branch: inventory.branch,
-              movementType: STOCK_MOVEMENT_TYPES.ADJUSTMENT,
-              quantity: Math.abs(movementData.quantity),
-              previousStock,
-              newStock,
-              reason: movementData.reason,
-              remarks: movementData.remarks,
-              performedBy: user._id,
-            },
-          ],
-          { session },
+            [
+                {
+                    inventory: inventory._id,
+                    branch: inventory.branch,
+                    movementType: STOCK_MOVEMENT_TYPES.ADJUSTMENT,
+                    quantity: Math.abs(movementData.quantity),
+                    previousStock,
+                    newStock,
+                    reason: movementData.reason,
+                    remarks: movementData.remarks,
+                    performedBy: user._id,
+                },
+            ],
+            { session },
         );
         
         await logActivity(
-          {
-            user: user._id,
-            module: ACTIVITY_MODULES.INVENTORY,
-            action: ACTIVITY_ACTIONS.STOCK_ADJUSTMENT,
-            recordId: inventory._id,
-            recordCode: inventory.sku,
-            description: `Adjusted inventory ${inventory.sku}.`,
-            metadata: {
-              stockMovementId: movement[0]._id,
-              previousStock,
-              newStock,
-              adjustment: newStock - previousStock,
-              reason: movement[0].reason,
+            {
+                user: user._id,
+                module: ACTIVITY_MODULES.INVENTORY,
+                action: ACTIVITY_ACTIONS.STOCK_ADJUSTMENT,
+                recordId: inventory._id,
+                recordCode: inventory.sku,
+                description: `Adjusted inventory ${inventory.sku}.`,
+                metadata: {
+                    stockMovementId: movement[0]._id,
+                    previousStock,
+                    newStock,
+                    adjustment: newStock - previousStock,
+                    reason: movement[0].reason,
+                },
+                ...requestInfo,
+                branch: movement[0].branch,
             },
-            ...requestInfo,
-          },
-          session,
+            session,
         );
 
         if (ownSession) {
@@ -470,7 +474,7 @@ const getStockMovements = async (query, user) => {
 const getStockMovement = async (movementId, user) => {
 
     const movement = await StockMovement.findById(movementId)
-        .populate("inventory", "sku itemName unit")
+        .populate("inventory", "sku itemName unit createdAt")
         .populate("branch", "branchName")
         .populate("fromBranch", "branchName")
         .populate("toBranch", "branchName")

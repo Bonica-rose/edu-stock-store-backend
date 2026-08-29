@@ -252,6 +252,7 @@ const createInventory = async (inventoryData, file, user, requestInfo) => {
         recordCode: createdInventory.sku,
         description: `Created inventory ${createdInventory.sku}.`,
         ...requestInfo,
+        branch: createdInventory.branch,
       },
       session,
     );
@@ -399,6 +400,7 @@ const updateInventory = async (
     recordCode: updatedInventory.sku,
     description: `Updated inventory ${updatedInventory.sku}.`,
     ...requestInfo,
+    branch: updatedInventory.branch,
   });
 
   return updatedInventory;
@@ -441,6 +443,7 @@ const changeInventoryStatus = async (inventoryId, user, requestInfo) => {
       isActive: inventory.isActive,
     },
     ...requestInfo,
+    branch: inventory.branch,
   });
 
   return inventory;
@@ -475,6 +478,7 @@ const deleteInventory = async (inventoryId, user, requestInfo) => {
     recordCode: inventory.sku,
     description: `Deleted inventory ${inventory.sku}.`,
     ...requestInfo,
+    branch: inventory.branch,
   });
 
   return inventory;

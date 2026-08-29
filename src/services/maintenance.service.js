@@ -226,6 +226,7 @@ const createMaintenance = async (maintenanceData, userId, requestInfo) => {
 
     await logActivity({
         user: userId,
+        branch: asset.branch,
         module: ACTIVITY_MODULES.MAINTENANCE,
         action: ACTIVITY_ACTIONS.CREATE,
         recordId: maintenance._id,
@@ -244,9 +245,18 @@ const createMaintenance = async (maintenanceData, userId, requestInfo) => {
 
 const assignMaintenance = async (id, assignData, userId, requestInfo) => {
     // Find maintenance
-    const maintenance = await Maintenance.findOne({ _id: id, isDeleted: false });
+    const maintenance = await Maintenance.findOne({
+        _id: id,
+        isDeleted: false,
+    }).populate("asset", "branch");
+
     if (!maintenance) {
         throw new ApiError(404, "Maintenance record not found.");
+    }
+
+    // Ensure maintenance has an asset
+    if (!maintenance.asset) {
+        throw new ApiError(400, "Maintenance asset not found.");
     }
 
     // Ensure maintenance is pending
@@ -255,7 +265,11 @@ const assignMaintenance = async (id, assignData, userId, requestInfo) => {
     }
 
     // Validate assigned user
-    const assignedUser = await User.findOne({ _id: assignData.assignedTo, isDeleted: false, isActive: true });
+    const assignedUser = await User.findOne({
+        _id: assignData.assignedTo,
+        isDeleted: false,
+        isActive: true,
+    });
     if (!assignedUser) {
         throw new ApiError(404, "Assigned user not found.");
     }
@@ -279,20 +293,20 @@ const assignMaintenance = async (id, assignData, userId, requestInfo) => {
         action: ACTIVITY_ACTIONS.ASSIGN,
         recordId: maintenance._id,
         recordCode: maintenance.maintenanceId,
-        description:
-            `Assigned maintenance ${maintenance.maintenanceId} to ${assignedUser.firstName} ${assignedUser.lastName}.`,
+        description: `Assigned maintenance ${maintenance.maintenanceId} to ${assignedUser.firstName} ${assignedUser.lastName}.`,
         metadata: {
-            assignedTo: assignedUser._id,
-            assignedEmployeeId: assignedUser.employeeId,
-            assignedDate: maintenance.assignedDate,
+        assignedTo: assignedUser._id,
+        assignedEmployeeId: assignedUser.employeeId,
+        assignedDate: maintenance.assignedDate,
         },
         ...requestInfo,
-    });   
+        branch: maintenance.asset.branch,
+    });
 
     return await Maintenance.findById(maintenance._id)
         .populate({
-            path: "asset",
-            select: "assetId assetName assetCode",
+        path: "asset",
+        select: "assetId assetName assetCode",
         })
         .populate("reportedBy", "firstName lastName email")
         .populate("assignedBy", "firstName lastName email")
@@ -303,10 +317,17 @@ const updateMaintenanceStatus = async (id, statusData, userId, requestinfo) => {
     const { status } = statusData;
 
     // Find maintenance
-    const maintenance = await Maintenance.findOne({ _id: id,  isDeleted: false });
+    const maintenance = await Maintenance.findOne({
+        _id: id,
+        isDeleted: false,
+    }).populate("asset", "branch");
 
     if (!maintenance) {
         throw new ApiError(404, "Maintenance record not found.");
+    }
+
+    if (!maintenance.asset) {
+        throw new ApiError(400, "Maintenance asset not found.");
     }
 
     const currentStatus = maintenance.status;
@@ -317,7 +338,7 @@ const updateMaintenanceStatus = async (id, statusData, userId, requestinfo) => {
             MAINTENANCE_STATUS.IN_PROGRESS,
             MAINTENANCE_STATUS.CANCELLED,
         ],
-        [MAINTENANCE_STATUS.IN_PROGRESS]: [],
+        [MAINTENANCE_STATUS.IN_PROGRESS]: [MAINTENANCE_STATUS.COMPLETED],
         [MAINTENANCE_STATUS.COMPLETED]: [],
         [MAINTENANCE_STATUS.CANCELLED]: [],
     };
@@ -356,6 +377,7 @@ const updateMaintenanceStatus = async (id, statusData, userId, requestinfo) => {
             currentStatus: maintenance.status,
         },
         ...requestInfo,
+        branch: maintenance.asset.branch,
     });
 
     return await Maintenance.findById(maintenance._id)
@@ -372,9 +394,15 @@ const updateMaintenanceStatus = async (id, statusData, userId, requestinfo) => {
 const completeMaintenance = async (id, completeData, userId, requestinfo) => {
     // Find maintenance
     const maintenance = await Maintenance.findOne({ _id: id, isDeleted: false })
-        .populate("vendor", "vendorName");;
+        .populate("vendor", "vendorName")
+        .populate("asset", "branch");
+    
     if (!maintenance) {
         throw new ApiError(404, "Maintenance record not found.");
+    }
+
+    if (!maintenance.asset) {
+        throw new ApiError(400, "Maintenance asset not found.");
     }
 
     // Only In Progress maintenance can be completed
@@ -411,6 +439,7 @@ const completeMaintenance = async (id, completeData, userId, requestinfo) => {
             completedDate: maintenance.completedDate,
         },
         ...requestInfo,
+        branch: maintenance.asset.branch,
     });
 
     return await Maintenance.findById(maintenance._id)
@@ -426,9 +455,17 @@ const completeMaintenance = async (id, completeData, userId, requestinfo) => {
 
 const deleteMaintenance = async (id, userId, requestinfo) => {
     // Find maintenance
-    const maintenance = await Maintenance.findOne({ _id: id,  isDeleted: false });
+    const maintenance = await Maintenance.findOne({
+        _id: id,
+        isDeleted: false,
+    }).populate("asset", "branch");
+
     if (!maintenance) {
         throw new ApiError(404, "Maintenance record not found.");
+    }
+
+    if (!maintenance.asset) {
+        throw new ApiError(400, "Maintenance asset not found.");
     }
 
     // Allow only delete if maintenance is in pending
@@ -448,6 +485,7 @@ const deleteMaintenance = async (id, userId, requestinfo) => {
         recordCode: maintenance.maintenanceId,
         description: `Deleted maintenance ${maintenance.maintenanceId}.`,
         ...requestInfo,
+        branch: maintenance.asset.branch,
     });
 
     return;

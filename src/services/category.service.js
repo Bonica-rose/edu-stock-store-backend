@@ -124,6 +124,7 @@ const createCategory = async (categoryData, userId, requestInfo) => {
         recordCode: category.categoryCode || category.categoryName,
         description: `Created category ${category.categoryName}.`,
         ...requestInfo,
+        branch: null,
     });
 
     return await Category.findById(category._id)
@@ -197,6 +198,7 @@ const updateCategory = async (categoryId, categoryData, userId, requestInfo) => 
         recordCode: category.categoryCode || category.categoryName,
         description: `Updated category ${category.categoryName}.`,
         ...requestInfo,
+        branch: null,
     });
 
     return await Category.findById(category._id)
@@ -230,6 +232,7 @@ const changeCategoryStatus = async (categoryId, userId, requestInfo) => {
             isActive: category.isActive,
         },
         ...requestInfo,
+        branch: null,
     });
 
     return await Category.findById(category._id)
@@ -267,6 +270,7 @@ const deleteCategory = async (categoryId, userId, requestInfo) => {
         recordCode: category.categoryCode || category.categoryName,
         description: `Deleted category ${category.categoryName}.`,
         ...requestInfo,
+        branch: null,
     });
 
     return;
