@@ -1,7 +1,7 @@
 const buildPagination = (page, limit, totalRecords) => ({
     page,
     limit,
-    totalRecords,
+    total: totalRecords,
     totalPages: Math.ceil(totalRecords / limit),
 });
 

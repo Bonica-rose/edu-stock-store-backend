@@ -10,7 +10,10 @@ const ApiError = require("../utils/apiError.util");
 const { getNextSequence } = require("../utils/getNextSequence.util");
 const { ROLES } = require("../constants/roles");
 const { STOCK_MOVEMENT_REASONS } = require("../constants/stockMovement.constants");
-const { ASSET_STATUS } = require("../constants/asset.constants");
+const {
+    ASSET_STATUS,
+    ASSET_CONDITION,
+} = require("../constants/asset.constants");
 const { logActivity } = require("./activity.service");
 const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
 
@@ -184,16 +187,19 @@ const createAsset = async (assetData, user, requestInfo) => {
             session
         );
 
-        await logActivity({
-            user: user._id,
-            module: ACTIVITY_MODULES.ASSET,
-            action: ACTIVITY_ACTIONS.CREATE,
-            recordId: asset[0]._id,
-            recordCode: asset[0].assetCode,
-            description: `Created asset ${asset[0].assetCode}.`,
-            ...requestInfo,
-            branch: asset[0].branch,
-        });
+        await logActivity(
+            {
+                user: user._id,
+                module: ACTIVITY_MODULES.ASSET,
+                action: ACTIVITY_ACTIONS.CREATE,
+                recordId: asset[0]._id,
+                recordCode: asset[0].assetCode,
+                description: `Created asset ${asset[0].assetCode}.`,
+                ...requestInfo,
+                branch: asset[0].branch,
+            },
+            session,
+        );
 
         await session.commitTransaction();
 
@@ -331,6 +337,10 @@ const assignAsset = async (assetId, assignmentData, user, requestInfo) => {
 
     if (asset.status !== ASSET_STATUS.AVAILABLE) {
         throw new ApiError(400, "Only available assets can be assigned.");
+    }
+
+    if (asset.condition !== ASSET_CONDITION.GOOD) {
+        throw new ApiError(400, "Only assets in good condition can be assigned.");
     }
 
     const assignedUser = await User.findOne({ _id: assignmentData.assignedTo});

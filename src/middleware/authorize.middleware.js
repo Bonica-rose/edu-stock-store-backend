@@ -24,9 +24,9 @@ const authorize = (...requiredPermissions) => {
             permissions.includes(permission)
         );
 
-        console.log("Role:", role);
-        console.log("Permissions:", ROLE_PERMISSIONS[role]);
-        console.log("Required:", requiredPermissions);
+        // console.log("Role:", role);
+        // console.log("Permissions:", ROLE_PERMISSIONS[role]);
+        // console.log("Required:", requiredPermissions);
 
         if (!hasPermission) {
             return next(

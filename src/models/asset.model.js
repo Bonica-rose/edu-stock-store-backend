@@ -1,9 +1,5 @@
 const mongoose = require("mongoose");
 const { ASSET_STATUS, ASSET_CONDITION } = require("../constants/asset.constants");
-// const User = require("../models/user.model");
-// const Branch = require("../models/branch.model");
-// const Inventory = require("../models/inventory.model");
-// const Maintenance = require("../models/maintenance.model");
 
 const assignmentHistorySchema = new mongoose.Schema(
     {

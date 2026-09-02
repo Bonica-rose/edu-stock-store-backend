@@ -1,8 +1,5 @@
 const mongoose = require("mongoose");
 const { MAINTENANCE_STATUS, MAINTENANCE_PRIORITY } = require("../constants/maintenance.constants");
-// const User = require("../models/user.model");
-// const Vendor = require("../models/vendor.model");
-// const Asset = require("../models/asset.model");
 
 const maintenanceSchema = new mongoose.Schema(
   {

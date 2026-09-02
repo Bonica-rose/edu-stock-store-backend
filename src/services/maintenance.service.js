@@ -1,3 +1,5 @@
+const mongoose = require("mongoose");
+
 const Maintenance = require("../models/maintenance.model");
 const Asset = require("../models/asset.model");
 const ApiError = require("../utils/apiError.util");
@@ -6,18 +8,10 @@ const { MAINTENANCE_STATUS, } = require("../constants/maintenance.constants");
 const { ROLES } = require("../constants/roles");
 const { logActivity } = require("./activity.service");
 const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
+const { getNextSequence } = require("../utils/getNextSequence.util");
 
-const generateMaintenanceId = async () => {
-    const lastMaintenance = await Maintenance.findOne()
-        .sort({ maintenanceId: -1 })
-        .select("maintenanceId");
-
-    if (!lastMaintenance || !lastMaintenance.maintenanceId) {
-        return "MTN00001";
-    }
-
-    const lastNumber = parseInt(lastMaintenance.maintenanceId.replace("MTN", ""), 10);
-    const nextNumber = lastNumber + 1;
+const generateMaintenanceId = async (session = null) => {
+    const nextNumber = await getNextSequence("maintenance", session);
 
     return `MTN${String(nextNumber).padStart(5, "0")}`;
 };
@@ -170,77 +164,98 @@ const getMaintenance = async (id) => {
 };
 
 const createMaintenance = async (maintenanceData, userId, requestInfo) => {
-    // Check asset exists
-    const asset = await Asset.findOne({_id: maintenanceData.asset, isDeleted: false });
-    if (!asset) {
-        throw new ApiError(404, "Asset not found.");
+    const session = await mongoose.startSession();
+    try {
+        session.startTransaction();
+
+        // Check asset exists
+        const asset = await Asset.findOne({
+            _id: maintenanceData.asset,
+            isDeleted: false,
+        }).session(session);
+
+        if (!asset) {
+            throw new ApiError(404, "Asset not found.");
+        }
+
+        // Check asset is active (if your Asset model has isActive)
+        if (asset.isActive === false) {
+            throw new ApiError(400, "Maintenance cannot be created for an inactive asset.");
+        }
+
+        if (asset.status !== ASSET_STATUS.AVAILABLE) {
+            throw new ApiError(400, "Maintenance can only be created for available assets.");
+        }
+        // Prevent duplicate open maintenance requests
+        const existingMaintenance = await Maintenance.findOne({
+            asset: asset._id,
+            status: {
+                $in: [MAINTENANCE_STATUS.PENDING, MAINTENANCE_STATUS.IN_PROGRESS],
+            },
+            isDeleted: false,
+        }).session(session);
+
+        if (existingMaintenance) {
+            throw new ApiError(409, "An active maintenance request already exists for this asset.");
+        }
+
+        // Generate Maintenance ID
+        const maintenanceId = await generateMaintenanceId(session);
+
+        const reportedDate = new Date();
+
+        // Create maintenance record
+        const maintenance = await Maintenance.create([{
+            ...maintenanceData,
+            maintenanceId,
+            reportedBy: userId,
+            reportedDate,
+            status: MAINTENANCE_STATUS.PENDING,
+        }],{ session });
+
+        // Update asset condition
+        asset.condition = ASSET_CONDITION.UNDER_MAINTENANCE;
+
+        // Optional: Add maintenance history
+        if (Array.isArray(asset.maintenanceHistory)) {
+            asset.maintenanceHistory.push({
+                maintenance: maintenance[0]._id,
+                createdAt: new Date(),
+            });
+        }
+
+        await asset.save({ session });
+
+        await logActivity(
+            {
+                user: userId,
+                branch: asset.branch,
+                module: ACTIVITY_MODULES.MAINTENANCE,
+                action: ACTIVITY_ACTIONS.CREATE,
+                recordId: maintenance[0]._id,
+                recordCode: maintenance[0].maintenanceId,
+                description: `Created maintenance request ${maintenance[0].maintenanceId}.`,
+                ...requestInfo,
+            },
+            session,
+        );
+
+        // Commit transaction
+        await session.commitTransaction();
+
+        return await Maintenance.findById(maintenance[0]._id)
+            .populate({
+                path: "asset",
+                select: "assetId assetName assetCode",
+            })
+            .populate("reportedBy", "firstName lastName email");
+        
+    } catch (error) {
+        await session.abortTransaction();
+        throw error;
+    } finally {
+        await session.endSession();
     }
-
-    // Check asset is active (if your Asset model has isActive)
-    if (asset.isActive === false) {
-        throw new ApiError(400, "Maintenance cannot be created for an inactive asset.");
-    }
-
-    // Prevent duplicate open maintenance requests
-    const existingMaintenance = await Maintenance.findOne({
-        asset: asset._id,
-        status: {
-            $in: [
-                MAINTENANCE_STATUS.PENDING,
-                MAINTENANCE_STATUS.IN_PROGRESS,
-            ],
-        },
-        isDeleted: false,
-    });
-
-    if (existingMaintenance) {
-        throw new ApiError(409, "An active maintenance request already exists for this asset.");
-    }
-
-    // Generate Maintenance ID
-    const maintenanceId = await generateMaintenanceId();
-
-    const reportedDate = new Date();
-
-    // Create maintenance record
-    const maintenance = await Maintenance.create({
-        ...maintenanceData,
-        maintenanceId,
-        reportedBy: userId,
-        reportedDate,
-        status: MAINTENANCE_STATUS.PENDING,
-    });
-
-    // Update asset condition
-    asset.condition = ASSET_CONDITION.UNDER_MAINTENANCE;
-
-    // Optional: Add maintenance history
-    if (Array.isArray(asset.maintenanceHistory)) {
-        asset.maintenanceHistory.push({
-            maintenance: maintenance._id,
-            createdAt: new Date(),
-        });
-    }
-
-    await asset.save();
-
-    await logActivity({
-        user: userId,
-        branch: asset.branch,
-        module: ACTIVITY_MODULES.MAINTENANCE,
-        action: ACTIVITY_ACTIONS.CREATE,
-        recordId: maintenance._id,
-        recordCode: maintenance.maintenanceId,
-        description: `Created maintenance request ${maintenance.maintenanceId}.`,
-        ...requestInfo,
-    });
-
-    return await Maintenance.findById(maintenance._id)
-        .populate({
-            path: "asset",
-            select: "assetId assetName assetCode",
-        })
-        .populate("reportedBy", "firstName lastName email");
 };
 
 const assignMaintenance = async (id, assignData, userId, requestInfo) => {
