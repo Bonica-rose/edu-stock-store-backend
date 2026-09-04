@@ -10,7 +10,7 @@ const { logActivity } = require("./activity.service");
 const { ACTIVITY_MODULES, ACTIVITY_ACTIONS } = require("../constants/activity.constants");
 const { mapUser, mapUsers } = require("../utils/userResponse.util");
 const { uploadToCloudinary, deleteFromCloudinary } = require("../utils/cloudinary");
-
+const USER_PASSWORD_BY_SUPER_ADMIN = "WelcomeUser@26!"; // Default
 
 exports.createUser = async (userData, loggedInUser, requestInfo) => {
     const {
@@ -95,6 +95,7 @@ exports.createUser = async (userData, loggedInUser, requestInfo) => {
     }
 
     // Hash password
+    password = USER_PASSWORD_BY_SUPER_ADMIN; // Set a default password
     const hashedPassword = await hashPassword(password);
 
     // Transaction starts here
