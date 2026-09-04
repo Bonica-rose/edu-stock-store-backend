@@ -17,6 +17,8 @@
     "nodemon": "^3.1.14"
   },
   "dependencies": {
+    "@google/genai": "^2.21.0",
+    "@tensorflow/tfjs-node": "^4.22.0",
     "argon2": "^0.45.1",
     "cloudinary": "^2.10.0",
     "cookie-parser": "^1.4.7",

@@ -28,7 +28,7 @@ const getAuditorDashboard = async (branchId) => {
 
     Activity.find({ branch: branchId })
       .sort({ createdAt: -1 })
-      .limit(10)
+      .limit(5)
       .populate("user", "firstName lastName")
       .lean(),
   ]);
@@ -124,7 +124,7 @@ const getBranchAdminDashboard = async (branchId) => {
       }),
       Activity.find({ branch: branchId })
         .sort({ createdAt: -1 })
-        .limit(10)
+        .limit(5)
         .populate("user", "firstName lastName")
         .lean(),
     ]);
