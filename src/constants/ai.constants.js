@@ -1,0 +1,22 @@
+const AI_CONFIG = Object.freeze({
+    // HISTORY_DAYS: 150,
+    FEATURE_WINDOW_DAYS: 30,
+    RECENT_WINDOW_DAYS: 7,
+    PREVIOUS_WINDOW_DAYS: 7,
+    FORECAST_DAYS: 7,
+    DASHBOARD_LIMIT: 5,
+    TRAINING_MIN_SAMPLES: 20,
+});
+
+const AI_RISK_LEVELS = Object.freeze({
+    CRITICAL: "CRITICAL",
+    HIGH: "HIGH",
+    MEDIUM: "MEDIUM",
+    LOW: "LOW",
+    INSUFFICIENT_DATA: "INSUFFICIENT_DATA",
+});
+
+module.exports = {
+    AI_CONFIG,
+    AI_RISK_LEVELS,
+};

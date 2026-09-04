@@ -125,7 +125,11 @@ const inventorySchema = new mongoose.Schema(
 );
 
 // Indexes
-inventorySchema.index({ sku: 1 }, { unique: true });
+/*
+* Same SKU is allowed in different branches.
+* But the same SKU cannot exist twice in the same branch.
+*/
+inventorySchema.index({ sku: 1, branch: 1 },{ unique: true });
 inventorySchema.index({ branch: 1 });
 inventorySchema.index({ category: 1 });
 inventorySchema.index({ vendor: 1 });
@@ -134,8 +138,15 @@ inventorySchema.index({ isActive: 1 });
 inventorySchema.index({ isDeleted: 1 });
 inventorySchema.index({ branch: 1, category: 1 });
 inventorySchema.index({ branch: 1, isActive: 1 });
+
+/*
+* A barcode can exist in multiple branches because the same item can be
+* transferred between branches.
+*
+* However, the same barcode cannot appear twice in the same branch.
+*/
 inventorySchema.index(
-  { barcode: 1 },
+  { barcode: 1, branch: 1 },
   {
     unique: true,
     partialFilterExpression: {

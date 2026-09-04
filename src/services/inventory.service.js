@@ -147,7 +147,7 @@ const createInventory = async (inventoryData, file, user, requestInfo) => {
       itemType,
       unit,
       purchasePrice,
-      description
+      description,
     } = inventoryData;
 
     // Category
@@ -182,7 +182,10 @@ const createInventory = async (inventoryData, file, user, requestInfo) => {
 
     // Branch Admin restriction
     if (user.role === "Branch Admin" && user.branch.toString() !== branch) {
-      throw new ApiError(403, "You can create inventory only for your own branch.");
+      throw new ApiError(
+        403,
+        "You can create inventory only for your own branch.",
+      );
     }
 
     // Barcode
@@ -190,6 +193,7 @@ const createInventory = async (inventoryData, file, user, requestInfo) => {
     if (normalizedBarcode) {
       const existingBarcode = await Inventory.findOne({
         barcode: normalizedBarcode,
+        branch,
         isDeleted: false,
       }).session(session);
 
@@ -224,7 +228,6 @@ const createInventory = async (inventoryData, file, user, requestInfo) => {
       inventoryDataToCreate.barcode = normalizedBarcode;
     }
 
-    
     if (file) {
       const itemPicture = await uploadToCloudinary(
         file.path,
@@ -273,7 +276,7 @@ const createInventory = async (inventoryData, file, user, requestInfo) => {
       session.endSession();
     }
   }
-}; 
+};
 
 const updateInventory = async (
   inventoryId,
@@ -334,19 +337,26 @@ const updateInventory = async (
     }
   }
 
-  // Check duplicate barcode
-  if (inventoryData.barcode) {
+  // Check duplicate barcode within the target branch
+  const normalizedBarcode = inventoryData.barcode?.trim();
+  if (normalizedBarcode) {
+    const targetBranch = inventoryData.branch || inventory.branch;
+
     const existingBarcode = await Inventory.findOne({
-      barcode: inventoryData.barcode,
+      barcode: normalizedBarcode,
+      branch: targetBranch,
       _id: { $ne: inventoryId },
     });
 
     if (existingBarcode) {
-      throw new ApiError(409, "Barcode already exists.");
+      throw new ApiError(409, "Barcode already exists in the selected branch.");
     }
   }
 
-  if (inventory.itemType !== inventoryData.itemType && inventory.currentStock > 0) {
+  if (
+    inventory.itemType !== inventoryData.itemType &&
+    inventory.currentStock > 0
+  ) {
     throw new ApiError(409, "Item type cannot be changed while stock exists");
   }
 
@@ -356,10 +366,10 @@ const updateInventory = async (
 
   const updateData = {
     itemName: inventoryData.itemName,
-    barcode: inventoryData.barcode,
+    barcode: normalizedBarcode,
     category: inventoryData.category,
     vendor: inventoryData.vendor,
-    branch: inventoryData.branch,
+    branch: inventoryData.branch ?? inventory.branch,
     itemType: inventoryData.itemType ?? inventory.itemType,
     minimumStock: inventoryData.minimumStock,
     unit: inventoryData.unit,
@@ -463,7 +473,10 @@ const deleteInventory = async (inventoryId, user, requestInfo) => {
     inventory: inventoryId,
   });
   if (transactionExists) {
-    throw new ApiError(400, "Cannot delete inventory with stock transaction history.");
+    throw new ApiError(
+      400,
+      "Cannot delete inventory with stock transaction history.",
+    );
   }
 
   inventory.isDeleted = true;
