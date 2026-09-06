@@ -9,17 +9,18 @@ const Activity = require("../models/activity.model");
 const ApiError = require("../utils/apiError.util");
 const { ROLES } = require("../constants/roles");
 const { getSettings } = require("./settings.service");
+const { STOCK_MOVEMENT_TYPES } = require("../constants/stockMovement.constants");
 
 const getAuditorDashboard = async (branchId) => {
   const [inventory, assets, movements, activities] = await Promise.all([
     Inventory.countDocuments({
       branch: branchId,
-      isDeleted: null,
+      isDeleted: false,
     }),
 
     Asset.countDocuments({
       branch: branchId,
-      isDeleted: null,
+      isDeleted: false,
     }),
 
     StockMovement.countDocuments({
@@ -76,12 +77,12 @@ const getInventoryDashboard = async (branchId) => {
   const [inventory, lowStock, stockInToday, stockOutToday] = await Promise.all([
     Inventory.countDocuments({
       branch: branchId,
-      isDeleted: null,
+      isDeleted: false,
     }),
 
     Inventory.countDocuments({
       branch: branchId,
-      isDeleted: null,
+      isDeleted: false,
       $expr: {
         $lte: ["$currentStock", settings.lowStockQuantityThreshold],
       },
@@ -89,12 +90,12 @@ const getInventoryDashboard = async (branchId) => {
 
     StockMovement.countDocuments({
       branch: branchId,
-      movementType: "STOCK_IN",
+      movementType: STOCK_MOVEMENT_TYPES.STOCK_IN,
     }),
 
     StockMovement.countDocuments({
       branch: branchId,
-      movementType: "STOCK_OUT",
+      movementType: STOCK_MOVEMENT_TYPES.STOCK_OUT,
     }),
   ]);
 
@@ -113,13 +114,13 @@ const getBranchAdminDashboard = async (branchId) => {
 
   const [inventory, assets, users, maintenance, lowStock, recentActivities] =
     await Promise.all([
-      Inventory.countDocuments({ branch: branchId, isDeleted: null }),
-      Asset.countDocuments({ branch: branchId, isDeleted: null }),
-      User.countDocuments({ branch: branchId, isDeleted: null }),
+      Inventory.countDocuments({ branch: branchId, isDeleted: false }),
+      Asset.countDocuments({ branch: branchId, isDeleted: false }),
+      User.countDocuments({ branch: branchId, isDeleted: false }),
       Maintenance.countDocuments({ branch: branchId }),
       Inventory.countDocuments({
         branch: branchId,
-        isDeleted: null,
+        isDeleted: false,
         $expr: { $lte: ["$currentStock", settings.lowStockQuantityThreshold] },
       }),
       Activity.find({ branch: branchId })
@@ -154,9 +155,9 @@ const getSuperAdminDashboard = async () => {
     maintenance,
     recentActivities,
   ] = await Promise.all([
-    Branch.countDocuments({ isDeleted: null }),
-    User.countDocuments({ isDeleted: null }),
-    Vendor.countDocuments({ isDeleted: null }),
+    Branch.countDocuments({}),
+    User.countDocuments({ isDeleted: false }),
+    Vendor.countDocuments({}),
     Inventory.countDocuments({ isDeleted: false }),
     Asset.countDocuments({ isDeleted: false }),
     Inventory.countDocuments({
@@ -209,6 +210,216 @@ const getDashboard = async (user) => {
   }
 };
 
+const getStockMovementTrend = async (user) => {
+  const match = {};
+
+  if (user.role !== ROLES.SUPER_ADMIN) {
+    match.branch = user.branch;
+  }
+
+  const data = await StockMovement.aggregate([
+    { $match: match },
+
+    {
+      $group: {
+        _id: {
+          month: { $month: "$createdAt" },
+          year: { $year: "$createdAt" },
+          movementType: "$movementType",
+        },
+        quantity: { $sum: "$quantity" },
+      },
+    },
+
+    {
+      $group: {
+        _id: {
+          month: "$_id.month",
+          year: "$_id.year",
+        },
+
+        stockIn: {
+          $sum: {
+            $cond: [{ $eq: ["$_id.movementType", "Stock In"] }, "$quantity", 0],
+          },
+        },
+
+        stockOut: {
+          $sum: {
+            $cond: [
+              { $eq: ["$_id.movementType", "Stock Out"] },
+              "$quantity",
+              0,
+            ],
+          },
+        },
+      },
+    },
+
+    {
+      $sort: {
+        "_id.year": 1,
+        "_id.month": 1,
+      },
+    },
+
+    {
+      $project: {
+        _id: 0,
+        month: {
+          $concat: [
+            {
+              $arrayElemAt: [
+                [
+                  "",
+                  "Jan",
+                  "Feb",
+                  "Mar",
+                  "Apr",
+                  "May",
+                  "Jun",
+                  "Jul",
+                  "Aug",
+                  "Sep",
+                  "Oct",
+                  "Nov",
+                  "Dec",
+                ],
+                "$_id.month",
+              ],
+            },
+            " ",
+            { $toString: "$_id.year" },
+          ],
+        },
+        stockIn: 1,
+        stockOut: 1,
+      },
+    },
+  ]);
+
+  return data;
+};
+
+const getInventoryByCategory = async (user) => {
+  const match = {
+    isDeleted: false,
+  };
+
+  if (user.role !== ROLES.SUPER_ADMIN) {
+    match.branch = user.branch;
+  }
+
+  return Inventory.aggregate([
+    { $match: match },
+
+    {
+      $group: {
+        _id: "$category",
+        quantity: { $sum: "$currentStock" },
+      },
+    },
+
+    {
+      $lookup: {
+        from: "categories",
+        localField: "_id",
+        foreignField: "_id",
+        as: "category",
+      },
+    },
+
+    { $unwind: "$category" },
+
+    {
+      $project: {
+        _id: 0,
+        category: "$category.name",
+        quantity: 1,
+      },
+    },
+
+    { $sort: { quantity: -1 } },
+  ]);
+};
+
+const getStockHealth = async (user) => {
+  const settings = await getSettings();
+
+  const match = {
+    isDeleted: false,
+  };
+
+  if (user.role !== ROLES.SUPER_ADMIN) {
+    match.branch = user.branch;
+  }
+
+  const result = await Inventory.aggregate([
+    { $match: match },
+
+    {
+      $group: {
+        _id: null,
+
+        healthy: {
+          $sum: {
+            $cond: [
+              {
+                $gt: ["$currentStock", settings.lowStockQuantityThreshold],
+              },
+              1,
+              0,
+            ],
+          },
+        },
+
+        lowStock: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $gt: ["$currentStock", 0] },
+                  {
+                    $lte: ["$currentStock", settings.lowStockQuantityThreshold],
+                  },
+                ],
+              },
+              1,
+              0,
+            ],
+          },
+        },
+
+        outOfStock: {
+          $sum: {
+            $cond: [{ $eq: ["$currentStock", 0] }, 1, 0],
+          },
+        },
+      },
+    },
+
+    {
+      $project: {
+        _id: 0,
+        healthy: 1,
+        lowStock: 1,
+        outOfStock: 1,
+      },
+    },
+  ]);
+
+  return (
+    result[0] || {
+      healthy: 0,
+      lowStock: 0,
+      outOfStock: 0,
+    }
+  );
+};
+
 module.exports = {
   getDashboard,
+  getStockMovementTrend,
+  getInventoryByCategory,
+  getStockHealth,
 };
