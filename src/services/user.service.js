@@ -213,9 +213,7 @@ exports.getUsers = async (query, loggedInUser) => {
 
     const order = query.order === "asc" ? 1 : -1;
 
-    // ----------------------------
     // Base Filter
-    // ----------------------------
     const filter = {
         deletedAt: null,
     };
@@ -225,10 +223,7 @@ exports.getUsers = async (query, loggedInUser) => {
         filter.branch = loggedInUser.branch;
     }
 
-    // ----------------------------
     // Filters
-    // ----------------------------
-
     if (query.role) {
         filter.role = query.role;
     }
@@ -274,7 +269,7 @@ exports.getUsers = async (query, loggedInUser) => {
         pagination: {
             page,
             limit,
-            totalRecords,
+            total: totalRecords,
             totalPages: Math.ceil(totalRecords / limit),
             hasNextPage: page * limit < totalRecords,
             hasPreviousPage: page > 1,

@@ -51,17 +51,22 @@ const getInventories = async (query, user) => {
 
   if (vendor) filter.vendor = vendor;
 
-  if (branch) filter.branch = branch;
-
   if (itemType) filter.itemType = itemType;
 
   if (typeof isActive !== "undefined") {
     filter.isActive = isActive === "true";
   }
 
+  console.log("Client Branch", branch);
+  console.log("Current User Branch", user.branch);
+
   // Branch restriction
   if (user.role === ROLES.BRANCH_ADMIN) {
+    // Branch Admin can only access their assigned branch
     filter.branch = user.branch;
+  } else if (branch) {
+    // Other users can filter by branch
+    filter.branch = branch;
   }
 
   const allowedSortFields = [
@@ -79,6 +84,8 @@ const getInventories = async (query, user) => {
   };
 
   const skip = (Number(page) - 1) * Number(limit);
+
+  console.log(filter);
 
   const [inventories, total] = await Promise.all([
     Inventory.find(filter)

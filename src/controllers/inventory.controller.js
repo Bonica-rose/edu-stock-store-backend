@@ -6,6 +6,8 @@ exports.getInventories = asyncHandler(async (req, res) => {
 
     const { inventories, pagination } = await inventoryService.getInventories(req.query, req.user);
 
+    console.log(inventories);
+
     successResponse(res, 200, "Inventories retrieved successfully", inventories, pagination);
 });
 

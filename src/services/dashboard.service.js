@@ -9,7 +9,34 @@ const Activity = require("../models/activity.model");
 const ApiError = require("../utils/apiError.util");
 const { ROLES } = require("../constants/roles");
 const { getSettings } = require("./settings.service");
-const { STOCK_MOVEMENT_TYPES } = require("../constants/stockMovement.constants");
+const {
+  STOCK_MOVEMENT_TYPES,
+} = require("../constants/stockMovement.constants");
+
+const getRecentActivities = async ({
+  branchId = null,
+  modules = null,
+} = {}) => {
+  const filter = {};
+
+  // Branch restriction
+  if (branchId) {
+    filter.branch = branchId;
+  }
+
+  // Module restriction
+  if (modules?.length) {
+    filter.module = {
+      $in: modules,
+    };
+  }
+
+  return Activity.find(filter)
+    .sort({ createdAt: -1 })
+    .limit(5)
+    .populate("user", "firstName lastName")
+    .lean();
+};
 
 const getAuditorDashboard = async (branchId) => {
   const [inventory, assets, movements, activities] = await Promise.all([
@@ -27,11 +54,7 @@ const getAuditorDashboard = async (branchId) => {
       branch: branchId,
     }),
 
-    Activity.find({ branch: branchId })
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate("user", "firstName lastName")
-      .lean(),
+    getRecentActivities({ branchId }),
   ]);
 
   return {
@@ -45,59 +68,102 @@ const getAuditorDashboard = async (branchId) => {
 };
 
 const getMaintenanceDashboard = async (branchId) => {
-  const [pending, inProgress, completed] = await Promise.all([
-    Maintenance.countDocuments({
-      branch: branchId,
-      status: "Pending",
-    }),
+  const [maintenanceResult, recentActivities] = await Promise.all([
+    Maintenance.aggregate([
+      {
+        $lookup: {
+          from: "assets",
+          localField: "asset",
+          foreignField: "_id",
+          as: "asset",
+        },
+      },
 
-    Maintenance.countDocuments({
-      branch: branchId,
-      status: "In Progress",
-    }),
+      {
+        $unwind: "$asset",
+      },
 
-    Maintenance.countDocuments({
-      branch: branchId,
-      status: "Completed",
+      {
+        $match: {
+          "asset.branch": branchId,
+        },
+      },
+
+      {
+        $group: {
+          _id: "$status",
+          total: {
+            $sum: 1,
+          },
+        },
+      },
+    ]),
+
+    getRecentActivities({
+      branchId,
+      modules: ["Asset", "Maintenance"],
     }),
   ]);
 
+  const maintenance = {
+    pending: 0,
+    inProgress: 0,
+    completed: 0,
+  };
+
+  maintenanceResult.forEach((item) => {
+    if (item._id === "Pending") {
+      maintenance.pending = item.total;
+    }
+
+    if (item._id === "In Progress") {
+      maintenance.inProgress = item.total;
+    }
+
+    if (item._id === "Completed") {
+      maintenance.completed = item.total;
+    }
+  });
+
   return {
-    summary: {
-      pending,
-      inProgress,
-      completed,
-    },
+    summary: maintenance,
+    recentActivities,
   };
 };
 
 const getInventoryDashboard = async (branchId) => {
   const settings = await getSettings();
 
-  const [inventory, lowStock, stockInToday, stockOutToday] = await Promise.all([
-    Inventory.countDocuments({
-      branch: branchId,
-      isDeleted: false,
-    }),
+  const [inventory, lowStock, stockInToday, stockOutToday, recentActivities] =
+    await Promise.all([
+      Inventory.countDocuments({
+        branch: branchId,
+        isDeleted: false,
+      }),
 
-    Inventory.countDocuments({
-      branch: branchId,
-      isDeleted: false,
-      $expr: {
-        $lte: ["$currentStock", settings.lowStockQuantityThreshold],
-      },
-    }),
+      Inventory.countDocuments({
+        branch: branchId,
+        isDeleted: false,
+        $expr: {
+          $lte: ["$currentStock", settings.lowStockQuantityThreshold],
+        },
+      }),
 
-    StockMovement.countDocuments({
-      branch: branchId,
-      movementType: STOCK_MOVEMENT_TYPES.STOCK_IN,
-    }),
+      StockMovement.countDocuments({
+        branch: branchId,
+        movementType: STOCK_MOVEMENT_TYPES.STOCK_IN,
+      }),
 
-    StockMovement.countDocuments({
-      branch: branchId,
-      movementType: STOCK_MOVEMENT_TYPES.STOCK_OUT,
-    }),
-  ]);
+      StockMovement.countDocuments({
+        branch: branchId,
+        movementType: STOCK_MOVEMENT_TYPES.STOCK_OUT,
+      }),
+
+      getRecentActivities({
+        branchId,
+        modules: ["Inventory", "Purchase"],
+      }),
+    ]);
 
   return {
     summary: {
@@ -106,29 +172,54 @@ const getInventoryDashboard = async (branchId) => {
       stockInToday,
       stockOutToday,
     },
+    recentActivities,
   };
 };
 
 const getBranchAdminDashboard = async (branchId) => {
   const settings = await getSettings();
 
-  const [inventory, assets, users, maintenance, lowStock, recentActivities] =
-    await Promise.all([
-      Inventory.countDocuments({ branch: branchId, isDeleted: false }),
-      Asset.countDocuments({ branch: branchId, isDeleted: false }),
-      User.countDocuments({ branch: branchId, isDeleted: false }),
-      Maintenance.countDocuments({ branch: branchId }),
-      Inventory.countDocuments({
-        branch: branchId,
-        isDeleted: false,
-        $expr: { $lte: ["$currentStock", settings.lowStockQuantityThreshold] },
-      }),
-      Activity.find({ branch: branchId })
-        .sort({ createdAt: -1 })
-        .limit(5)
-        .populate("user", "firstName lastName")
-        .lean(),
-    ]);
+  const [
+    inventory,
+    assets,
+    users,
+    maintenanceResult,
+    lowStock,
+    recentActivities,
+  ] = await Promise.all([
+    Inventory.countDocuments({ branch: branchId, isDeleted: false }),
+    Asset.countDocuments({ branch: branchId, isDeleted: false }),
+    User.countDocuments({ branch: branchId }),
+    Maintenance.aggregate([
+      {
+        $lookup: {
+          from: "assets",
+          localField: "asset",
+          foreignField: "_id",
+          as: "asset",
+        },
+      },
+      {
+        $unwind: "$asset",
+      },
+      {
+        $match: {
+          "asset.branch": branchId,
+        },
+      },
+      {
+        $count: "total",
+      },
+    ]),
+    Inventory.countDocuments({
+      branch: branchId,
+      isDeleted: false,
+      $expr: { $lte: ["$currentStock", settings.lowStockQuantityThreshold] },
+    }),
+    getRecentActivities({ branchId }),
+  ]);
+
+  const maintenance = maintenanceResult[0]?.total || 0;
 
   return {
     summary: {
@@ -156,7 +247,7 @@ const getSuperAdminDashboard = async () => {
     recentActivities,
   ] = await Promise.all([
     Branch.countDocuments({}),
-    User.countDocuments({ isDeleted: false }),
+    User.countDocuments({}),
     Vendor.countDocuments({}),
     Inventory.countDocuments({ isDeleted: false }),
     Asset.countDocuments({ isDeleted: false }),
@@ -167,11 +258,7 @@ const getSuperAdminDashboard = async () => {
     Maintenance.countDocuments({
       status: { $in: ["Pending", "In Progress"] },
     }),
-    Activity.find()
-      .sort({ createdAt: -1 })
-      .limit(5)
-      .populate("user", "firstName lastName")
-      .lean(),
+    getRecentActivities(),
   ]);
 
   return {
@@ -329,12 +416,17 @@ const getInventoryByCategory = async (user) => {
       },
     },
 
-    { $unwind: "$category" },
+    {
+      $unwind: {
+        path: "$category",
+        preserveNullAndEmptyArrays: true,
+      },
+    },
 
     {
       $project: {
         _id: 0,
-        category: "$category.name",
+        category: "$category.categoryName",
         quantity: 1,
       },
     },

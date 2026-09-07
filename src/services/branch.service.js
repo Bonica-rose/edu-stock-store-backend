@@ -95,8 +95,8 @@ const getBranches = async (query) => {
     const skip = (Number(page) - 1) * Number(limit);
 
     const [branches, total] = await Promise.all([
-        Branch.find(filter)
-        .populate("manager", "firstName lastName email")
+      Branch.find(filter)
+        .populate("manager", "firstName lastName email phone employeeId")
         .populate("createdBy", "employeeId firstName lastName")
         .populate("updatedBy", "employeeId firstName lastName")
         .sort(sort)
@@ -104,26 +104,26 @@ const getBranches = async (query) => {
         .limit(Number(limit))
         .lean(),
 
-        Branch.countDocuments(filter),
+      Branch.countDocuments(filter),
     ]);
 
     return {
         data: branches,
         pagination: {
-        total,
-        page: Number(page),
-        limit: Number(limit),
-        totalPages: Math.ceil(total / Number(limit)),
+            total,
+            page: Number(page),
+            limit: Number(limit),
+            totalPages: Math.ceil(total / Number(limit)),
         },
     };
 };;
 
 const getBranchById = async (branchId) => {
     const branch = await Branch.findById(branchId)
-        .populate("manager", "firstName lastName email phone")
-        .populate("createdBy", "employeeId firstName lastName")
-        .populate("updatedBy", "employeeId firstName lastName")
-        .lean();
+      .populate("manager", "firstName lastName email phone employeeId")
+      .populate("createdBy", "employeeId firstName lastName")
+      .populate("updatedBy", "employeeId firstName lastName")
+      .lean();
 
     if (!branch) {
         throw new ApiError(404, "Branch not found.");

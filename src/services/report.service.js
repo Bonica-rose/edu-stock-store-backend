@@ -14,6 +14,35 @@ const { buildPagination } = require("../utils/pagination.util");
 const { exportToExcel } = require("../utils/exportExcel.util");
 const { getSettings } = require("./settings.service");
 
+const getPendingMaintenanceCount = async (branchFilter) => {
+  const match = {
+    status: MAINTENANCE_STATUS.PENDING,
+  };
+
+  if (branchFilter.branch) {
+    return Maintenance.aggregate([
+      {
+        $lookup: {
+          from: "assets",
+          localField: "asset",
+          foreignField: "_id",
+          as: "asset",
+        },
+      },
+      { $unwind: "$asset" },
+      {
+        $match: {
+          "asset.branch": branchFilter.branch,
+          status: MAINTENANCE_STATUS.PENDING,
+        },
+      },
+      { $count: "total" },
+    ]).then((result) => result[0]?.total || 0);
+  }
+
+  return Maintenance.countDocuments(match);
+};
+
 const getDashboardSummary = async (user) => {
   const branchFilter = getBranchFilter(user);
   const settings = await getSettings();
@@ -30,7 +59,10 @@ const getDashboardSummary = async (user) => {
     Inventory.countDocuments(branchFilter),
     Asset.countDocuments(branchFilter),
     Vendor.countDocuments(),
-    branchFilter.branch ? Promise.resolve(1) : Branch.countDocuments(),
+    // branchFilter.branch ? Promise.resolve(1) : Branch.countDocuments(),
+    Branch.countDocuments(
+      branchFilter.branch ? { _id: branchFilter.branch } : {},
+    ),
     StockMovement.countDocuments(branchFilter),
     Inventory.countDocuments({
       ...branchFilter,
@@ -44,10 +76,13 @@ const getDashboardSummary = async (user) => {
       },
     }),
 
-    Maintenance.countDocuments({
-      ...branchFilter,
-      status: MAINTENANCE_STATUS.PENDING,
-    }),
+    // Maintenance → Asset → Branch
+    getPendingMaintenanceCount(branchFilter),
+
+    // Maintenance.countDocuments({
+    //   ...branchFilter,
+    //   status: MAINTENANCE_STATUS.PENDING,
+    // }),
   ]);
 
   return {

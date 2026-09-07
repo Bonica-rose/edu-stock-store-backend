@@ -23,7 +23,7 @@ const getRecommendations = async (predictions) => {
         return new Map();
     }
 
-    const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+    const model = process.env.GEMINI_MODEL || "gemini-3.6-flash";
 
     const input = predictions.map((item) => ({
         sku: item.sku,
