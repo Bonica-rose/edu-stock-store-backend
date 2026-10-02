@@ -181,101 +181,98 @@ exports.createUser = async (userData, loggedInUser, requestInfo) => {
 };
 
 exports.getUsers = async (query, loggedInUser) => {
+  // Only Super Admin and Branch Admin
+  if (![ROLES.SUPER_ADMIN, ROLES.BRANCH_ADMIN].includes(loggedInUser.role)) {
+    throw new ApiError(403, "You are not allowed to view users.");
+  }
 
-    // Only Super Admin and Branch Admin
-    if (![ROLES.SUPER_ADMIN, ROLES.BRANCH_ADMIN].includes(loggedInUser.role)) {
-        throw new ApiError(403, "You are not allowed to view users.");
-    }
+  // ----------------------------
+  // Query Parameters
+  // ----------------------------
+  const page = Math.max(parseInt(query.page, 10) || 1, 1);
+  const limit = Math.max(parseInt(query.limit, 10) || 10, 1);
+  const skip = (page - 1) * limit;
 
-    // ----------------------------
-    // Query Parameters
-    // ----------------------------
-    const page = Math.max(parseInt(query.page, 10) || 1, 1);
-    const limit = Math.max(parseInt(query.limit, 10) || 10, 1);
-    const skip = (page - 1) * limit;
+  const search = query.search?.trim();
 
-    const search = query.search?.trim();
+  const allowedSortFields = [
+    "employeeId",
+    "firstName",
+    "lastName",
+    "email",
+    "role",
+    "isActive",
+    "lastLogin",
+    "createdAt",
+  ];
 
-    const allowedSortFields = [
-        "employeeId",
-        "firstName",
-        "lastName",
-        "email",
-        "role",
-        "isActive",
-        "lastLogin",
-        "createdAt",
+  const sortBy = allowedSortFields.includes(query.sortBy)
+    ? query.sortBy
+    : "createdAt";
+
+  const order = query.order === "asc" ? 1 : -1;
+
+  // Base Filter
+  const filter = {
+    deletedAt: null,
+  };
+
+  // Only Super Admin can filter by branch
+  if (query.branch && loggedInUser.role === ROLES.SUPER_ADMIN) {
+    filter.branch = query.branch;
+  }
+
+  // Branch Admin can view only own branch
+  if (loggedInUser.role === ROLES.BRANCH_ADMIN) {
+    filter.branch = loggedInUser.branch;
+  }
+
+  // Filters
+  if (query.role) {
+    filter.role = query.role;
+  }
+
+  if (query.isActive !== undefined) {
+    filter.isActive = query.isActive === "true";
+  }
+
+  // Search
+  if (search) {
+    filter.$or = [
+      { employeeId: { $regex: search, $options: "i" } },
+      { firstName: { $regex: search, $options: "i" } },
+      { lastName: { $regex: search, $options: "i" } },
+      { email: { $regex: search, $options: "i" } },
     ];
+  }
 
-    const sortBy = allowedSortFields.includes(query.sortBy)
-        ? query.sortBy
-        : "createdAt";
+  // ----------------------------
+  // Database
+  // ----------------------------
+  const totalRecords = await User.countDocuments(filter);
 
-    const order = query.order === "asc" ? 1 : -1;
+  const users = await User.find(filter)
+    .select("-password -__v")
+    .populate("branch", "branchCode branchName")
+    .populate("createdBy", "employeeId firstName lastName")
+    .populate("updatedBy", "employeeId firstName lastName")
+    .sort({ [sortBy]: order })
+    .skip(skip)
+    .limit(limit)
+    .lean();
 
-    // Base Filter
-    const filter = {
-        deletedAt: null,
-    };
-
-    // Branch Admin can view only own branch
-    if (loggedInUser.role === ROLES.BRANCH_ADMIN) {
-        filter.branch = loggedInUser.branch;
-    }
-
-    // Filters
-    if (query.role) {
-        filter.role = query.role;
-    }
-
-    // Only Super Admin can filter by branch
-    if (query.branch && loggedInUser.role === ROLES.SUPER_ADMIN) {
-        filter.branch = query.branch;
-    }
-
-    if (query.isActive !== undefined) {
-        filter.isActive = query.isActive === "true";
-    }
-
-    // ----------------------------
-    // Search
-    // ----------------------------
-    if (search) {
-        filter.$or = [
-            { employeeId: { $regex: search, $options: "i" } },
-            { firstName: { $regex: search, $options: "i" } },
-            { lastName: { $regex: search, $options: "i" } },
-            { email: { $regex: search, $options: "i" } },
-        ];
-    }
-
-    // ----------------------------
-    // Database
-    // ----------------------------
-    const totalRecords = await User.countDocuments(filter);
-
-    const users = await User.find(filter)
-        .select("-password -__v")
-        .populate("branch", "branchCode branchName")
-        .populate("createdBy", "employeeId firstName lastName")
-        .populate("updatedBy", "employeeId firstName lastName")
-        .sort({ [sortBy]: order })
-        .skip(skip)
-        .limit(limit)
-        .lean();
-
-    return {
-        users: mapUsers(users),
-        pagination: {
-            page,
-            limit,
-            total: totalRecords,
-            totalPages: Math.ceil(totalRecords / limit),
-            hasNextPage: page * limit < totalRecords,
-            hasPreviousPage: page > 1,
-        },
-    };
-};
+  return {
+    users: mapUsers(users),
+    pagination: {
+      page,
+      limit,
+      total: totalRecords,
+      totalPages: Math.ceil(totalRecords / limit),
+      hasNextPage: page * limit < totalRecords,
+      hasPreviousPage: page > 1,
+    },
+  };
+};;
 
 exports.getUserById = async (userId, loggedInUser) => {
 

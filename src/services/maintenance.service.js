@@ -17,121 +17,107 @@ const generateMaintenanceId = async (session = null) => {
 };
 
 const getMaintenances = async (query) => {
-    const page = parseInt(query.page, 10) || 1;
-    const limit = parseInt(query.limit, 10) || 10;
-    const skip = (page - 1) * limit;
+  const page = parseInt(query.page, 10) || 1;
+  const limit = parseInt(query.limit, 10) || 10;
+  const skip = (page - 1) * limit;
 
-    const search = query.search?.trim();
+  const search = query.search?.trim();
 
-    const filter = {
-        isDeleted: false,
+  const filter = {
+    isDeleted: false,
+  };
+
+  // Filters
+  if (query.status) {
+    filter.status = query.status;
+  }
+
+  if (query.priority) {
+    filter.priority = query.priority;
+  }
+
+  if (query.assignedTo) {
+    filter.assignedTo = query.assignedTo;
+  }
+
+  if (query.reportedBy) {
+    filter.reportedBy = query.reportedBy;
+  }
+
+  // Branch filter
+  if (query.branch) {
+    const assets = await Asset.find({
+      branch: query.branch,
+      isDeleted: false,
+    }).select("_id");
+
+    filter.asset = {
+      $in: assets.map((asset) => asset._id),
     };
+  }
 
-    // Filters
-    if (query.status) {
-        filter.status = query.status;
-    }
-
-    if (query.priority) {
-        filter.priority = query.priority;
-    }
-
-    if (query.assignedTo) {
-        filter.assignedTo = query.assignedTo;
-    }
-
-    if (query.reportedBy) {
-        filter.reportedBy = query.reportedBy;
-    }
-
-    // Search
-    if (search) {
-        filter.$or = [
-            {
-                maintenanceId: {
-                    $regex: search,
-                    $options: "i",
-                },
-            },
-            {
-                issueTitle: {
-                    $regex: search,
-                    $options: "i",
-                },
-            },
-        ];
-    }
-
-    // Sorting
-    let sort = { createdAt: -1 };
-
-    if (query.sortBy) {
-        const order = query.sortOrder === "asc" ? 1 : -1;
-        sort = {
-            [query.sortBy]: order,
-        };
-    }
-
-    let maintenanceQuery = Maintenance.find(filter)
-        .populate({
-            path: "asset",
-            select: "assetCode assetCode serialNumber inventory branch condition",
-            populate: {
-                path: "branch",
-                select: "branchName branchCode",
-            },
-            populate: {
-                path: "inventory",
-                select: "itemName sku",
-            },
-        })
-        .populate("reportedBy", "firstName lastName email")
-        .populate("assignedTo", "firstName lastName email")
-        .populate("vendor", "vendorName")
-        .sort(sort);
-
-    const maintenances = await maintenanceQuery
-        .skip(skip)
-        .limit(limit)
-        .lean();
-
-    // Search Asset Name & Filter Branch after populate
-    let filteredMaintenances = maintenances;
-
-    if (search) {
-        filteredMaintenances = filteredMaintenances.filter((maintenance) => {
-            const assetName = maintenance.asset?.assetName || "";
-
-            return (
-                assetName.toLowerCase().includes(search.toLowerCase()) ||
-                maintenance.maintenanceId
-                    .toLowerCase()
-                    .includes(search.toLowerCase()) ||
-                maintenance.issueTitle
-                    .toLowerCase()
-                    .includes(search.toLowerCase())
-            );
-        });
-    }
-
-    if (query.branch) {
-        filteredMaintenances = filteredMaintenances.filter(
-            (maintenance) =>
-                maintenance.asset?.branch?._id?.toString() === query.branch
-        );
-    }
-
-    const total = await Maintenance.countDocuments(filter);
-
-    return {
-        maintenances: filteredMaintenances,
-        pagination: {
-            total,
-            page,
-            limit,
-            totalPages: Math.ceil(total / limit),
+  // Search
+  if (search) {
+    filter.$or = [
+      {
+        maintenanceId: {
+          $regex: search,
+          $options: "i",
         },
+      },
+      {
+        issueTitle: {
+          $regex: search,
+          $options: "i",
+        },
+      },
+    ];
+  }
+
+  // Sorting
+  let sort = { createdAt: -1 };
+
+  if (query.sortBy) {
+    const order = query.sortOrder === "asc" ? 1 : -1;
+    sort = {
+      [query.sortBy]: order,
     };
+  }
+
+  let maintenances = await Maintenance.find(filter)
+    .populate({
+      path: "asset",
+      select: "assetCode serialNumber inventory branch condition",
+      populate: [
+        {
+          path: "branch",
+          select: "branchName branchCode",
+        },
+        {
+          path: "inventory",
+          select: "itemName sku",
+        },
+      ],
+    })
+    .populate("reportedBy", "firstName lastName email")
+    .populate("assignedTo", "firstName lastName email")
+    .populate("vendor", "vendorName")
+    .sort(sort)
+    .skip(skip)
+    .limit(limit)
+    .lean();
+
+  const total = await Maintenance.countDocuments(filter);
+
+  return {
+    maintenances,
+    pagination: {
+      total,
+      page,
+      limit,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 };
 
 const getMaintenance = async (id) => {
@@ -142,14 +128,16 @@ const getMaintenance = async (id) => {
       .populate({
         path: "asset",
         select: "assetCode assetCode serialNumber inventory branch condition",
-        populate: {
-          path: "branch",
-          select: "branchName branchCode",
-        },
-        populate: {
-          path: "inventory",
-          select: "itemName sku",
-        },
+        populate: [
+          {
+            path: "branch",
+            select: "branchName branchCode",
+          },
+          {
+            path: "inventory",
+            select: "itemName sku",
+          },
+        ],
       })
       .populate("reportedBy", "firstName lastName email")
       .populate("assignedBy", "firstName lastName email")
